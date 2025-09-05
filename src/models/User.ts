@@ -2,11 +2,11 @@ import mongoose, { Schema, Document } from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { IUser, UserRole, UserStatus } from '@/types';
 
-export interface IUserDocument extends IUser, Document {
+export interface IUserDocument extends Omit<IUser, '_id'>, Document {
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
-const UserSchema = new Schema<IUserDocument>({
+const UserSchema = new Schema({
   name: {
     type: String,
     required: [true, 'Name is required'],
@@ -34,10 +34,7 @@ const UserSchema = new Schema<IUserDocument>({
   status: {
     type: String,
     enum: ['pending', 'active', 'rejected', 'suspended'],
-    default: function() {
-      // Guests are active by default, students are pending
-      return this.role === 'guest' ? 'active' : 'pending';
-    }
+    default: 'pending'
   },
   libraries: [{
     type: Schema.Types.ObjectId,
@@ -57,7 +54,7 @@ const UserSchema = new Schema<IUserDocument>({
   timestamps: true,
   toJSON: {
     transform: function(doc, ret) {
-      delete ret.passwordHash;
+      delete (ret as any).passwordHash;
       return ret;
     }
   }

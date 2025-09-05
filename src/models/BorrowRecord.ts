@@ -1,9 +1,15 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IBorrowRecord, LoanStatus } from '@/types';
 
-export interface IBorrowRecordDocument extends IBorrowRecord, Document {}
+export interface IBorrowRecordDocument extends Omit<IBorrowRecord, '_id'>, Document {}
 
-const BorrowRecordSchema = new Schema<IBorrowRecordDocument>({
+export interface IBorrowRecordModel extends mongoose.Model<IBorrowRecordDocument> {
+  findActive(userId?: string, libraryId?: string): Promise<IBorrowRecordDocument[]>;
+  findOverdue(libraryId?: string): Promise<IBorrowRecordDocument[]>;
+  findByUser(userId: string, limit?: number): Promise<IBorrowRecordDocument[]>;
+}
+
+const BorrowRecordSchema = new Schema({
   userId: {
     type: Schema.Types.ObjectId,
     ref: 'User',
@@ -189,4 +195,4 @@ BorrowRecordSchema.statics.findByUser = function(userId: string, limit: number =
     .limit(limit);
 };
 
-export const BorrowRecord = mongoose.model<IBorrowRecordDocument>('BorrowRecord', BorrowRecordSchema);
+export const BorrowRecord = mongoose.model<IBorrowRecordDocument, IBorrowRecordModel>('BorrowRecord', BorrowRecordSchema);

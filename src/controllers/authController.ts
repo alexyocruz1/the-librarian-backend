@@ -70,14 +70,14 @@ export const register = async (req: Request, res: Response) => {
 
     // Generate tokens
     const accessToken = generateAccessToken({
-      userId: user._id.toString(),
+      userId: (user._id as any).toString(),
       email: user.email,
       role: user.role,
       libraries: user.libraries
     });
 
     const refreshToken = generateRefreshToken({
-      userId: user._id.toString(),
+      userId: (user._id as any).toString(),
       email: user.email,
       role: user.role,
       libraries: user.libraries
@@ -91,7 +91,7 @@ export const register = async (req: Request, res: Response) => {
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: role === 'guest' 
         ? 'Account created successfully' 
@@ -111,7 +111,7 @@ export const register = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Registration failed'
     });
@@ -161,14 +161,14 @@ export const login = async (req: Request, res: Response) => {
 
     // Generate tokens
     const accessToken = generateAccessToken({
-      userId: user._id.toString(),
+      userId: (user._id as any).toString(),
       email: user.email,
       role: user.role,
       libraries: user.libraries
     });
 
     const refreshToken = generateRefreshToken({
-      userId: user._id.toString(),
+      userId: (user._id as any).toString(),
       email: user.email,
       role: user.role,
       libraries: user.libraries
@@ -182,7 +182,7 @@ export const login = async (req: Request, res: Response) => {
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Login successful',
       data: {
@@ -200,7 +200,7 @@ export const login = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Login failed'
     });
@@ -213,13 +213,13 @@ export const logout = async (req: Request, res: Response) => {
     // Clear refresh token cookie
     res.clearCookie('refreshToken');
     
-    res.json({
+    return res.json({
       success: true,
       message: 'Logout successful'
     });
   } catch (error) {
     console.error('Logout error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Logout failed'
     });
@@ -247,14 +247,14 @@ export const getProfile = async (req: Request, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: { user }
     });
 
   } catch (error) {
     console.error('Get profile error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get profile'
     });
@@ -295,7 +295,7 @@ export const updateProfile = async (req: Request, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Profile updated successfully',
       data: { user }
@@ -303,7 +303,7 @@ export const updateProfile = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Update profile error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to update profile'
     });
@@ -357,14 +357,14 @@ export const changePassword = async (req: Request, res: Response) => {
     user.passwordHash = newPassword; // Will be hashed by pre-save middleware
     await user.save();
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Password changed successfully'
     });
 
   } catch (error) {
     console.error('Change password error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to change password'
     });

@@ -1,9 +1,14 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IInventory } from '@/types';
 
-export interface IInventoryDocument extends IInventory, Document {}
+export interface IInventoryDocument extends Omit<IInventory, '_id'>, Document {}
 
-const InventorySchema = new Schema<IInventoryDocument>({
+export interface IInventoryModel extends mongoose.Model<IInventoryDocument> {
+  findAvailable(libraryId?: string): Promise<IInventoryDocument[]>;
+  updateCopyCounts(inventoryId: string): Promise<IInventoryDocument | null>;
+}
+
+const InventorySchema = new Schema({
   libraryId: {
     type: Schema.Types.ObjectId,
     ref: 'Library',
@@ -92,4 +97,4 @@ InventorySchema.statics.updateCopyCounts = async function(inventoryId: string) {
   return inventory.save();
 };
 
-export const Inventory = mongoose.model<IInventoryDocument>('Inventory', InventorySchema);
+export const Inventory = mongoose.model<IInventoryDocument, IInventoryModel>('Inventory', InventorySchema);

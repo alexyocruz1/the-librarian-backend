@@ -1,9 +1,9 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { ILibrary } from '@/types';
 
-export interface ILibraryDocument extends ILibrary, Document {}
+export interface ILibraryDocument extends Omit<ILibrary, '_id'>, Document {}
 
-const LibrarySchema = new Schema<ILibraryDocument>({
+const LibrarySchema = new Schema({
   code: {
     type: String,
     required: [true, 'Library code is required'],

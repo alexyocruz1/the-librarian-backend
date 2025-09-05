@@ -98,7 +98,7 @@ export const getUsers = async (req: Request, res: Response) => {
       User.countDocuments(query)
     ]);
 
-    res.json({
+    return res.json({
       success: true,
       data: { users },
       pagination: {
@@ -111,7 +111,7 @@ export const getUsers = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Get users error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get users'
     });
@@ -134,14 +134,14 @@ export const getUserById = async (req: Request, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: { user }
     });
 
   } catch (error) {
     console.error('Get user error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get user'
     });
@@ -188,7 +188,7 @@ export const createUser = async (req: Request, res: Response) => {
     // Populate libraries for response
     await user.populate('libraries', 'name code');
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: 'User created successfully',
       data: { user }
@@ -196,7 +196,7 @@ export const createUser = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Create user error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to create user'
     });
@@ -251,7 +251,7 @@ export const updateUser = async (req: Request, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       message: 'User updated successfully',
       data: { user }
@@ -259,7 +259,7 @@ export const updateUser = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Update user error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to update user'
     });
@@ -288,14 +288,14 @@ export const deleteUser = async (req: Request, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       message: 'User deleted successfully'
     });
 
   } catch (error) {
     console.error('Delete user error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to delete user'
     });
@@ -332,7 +332,7 @@ export const approveStudent = async (req: Request, res: Response) => {
     user.status = 'active';
     await user.save();
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Student approved successfully',
       data: { user }
@@ -340,7 +340,7 @@ export const approveStudent = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Approve student error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to approve student'
     });
@@ -377,7 +377,7 @@ export const rejectStudent = async (req: Request, res: Response) => {
     user.status = 'rejected';
     await user.save();
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Student rejected successfully',
       data: { user }
@@ -385,7 +385,7 @@ export const rejectStudent = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Reject student error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to reject student'
     });
@@ -402,14 +402,14 @@ export const getPendingStudents = async (req: Request, res: Response) => {
     .select('-passwordHash')
     .sort({ createdAt: -1 });
 
-    res.json({
+    return res.json({
       success: true,
       data: { students }
     });
 
   } catch (error) {
     console.error('Get pending students error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get pending students'
     });

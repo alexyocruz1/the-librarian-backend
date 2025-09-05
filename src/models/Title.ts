@@ -1,9 +1,14 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { ITitle } from '@/types';
 
-export interface ITitleDocument extends ITitle, Document {}
+export interface ITitleDocument extends Omit<ITitle, '_id'>, Document {}
 
-const TitleSchema = new Schema<ITitleDocument>({
+export interface ITitleModel extends mongoose.Model<ITitleDocument> {
+  searchTitles(query: string, limit?: number): Promise<ITitleDocument[]>;
+  findByISBN(isbn: string): Promise<ITitleDocument | null>;
+}
+
+const TitleSchema = new Schema({
   isbn13: {
     type: String,
     sparse: true, // Allows multiple null values
@@ -104,4 +109,4 @@ TitleSchema.statics.findByISBN = function(isbn: string) {
   });
 };
 
-export const Title = mongoose.model<ITitleDocument>('Title', TitleSchema);
+export const Title = mongoose.model<ITitleDocument, ITitleModel>('Title', TitleSchema);

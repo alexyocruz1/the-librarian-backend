@@ -1,4 +1,4 @@
-import { Server as SocketIOServer } from 'socket.io';
+import { Server as SocketIOServer, Socket } from 'socket.io';
 import { Server as HTTPServer } from 'http';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
@@ -36,7 +36,7 @@ export const initializeSocketIO = (server: HTTPServer) => {
         return next(new Error('Authentication error: User not found or inactive'));
       }
 
-      socket.userId = user._id.toString();
+      socket.userId = (user._id as any).toString();
       socket.userRole = user.role;
       socket.libraries = user.libraries;
 

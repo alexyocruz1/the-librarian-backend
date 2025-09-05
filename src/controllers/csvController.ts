@@ -36,12 +36,12 @@ export const importBooksValidation = [
 export const importBooks = async (req: Request, res: Response) => {
   try {
     // Check validation errors
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
+    const validationErrors = validationResult(req);
+    if (!validationErrors.isEmpty()) {
       return res.status(400).json({
         success: false,
         error: 'Validation failed',
-        details: errors.array()
+        details: validationErrors.array()
       });
     }
 
@@ -65,7 +65,7 @@ export const importBooks = async (req: Request, res: Response) => {
 
     // Parse CSV file
     const csvData: CSVBookData[] = [];
-    const errors: string[] = [];
+    const csvErrors: string[] = [];
     
     const stream = Readable.from(req.file.buffer.toString());
     
@@ -75,25 +75,25 @@ export const importBooks = async (req: Request, res: Response) => {
         .on('data', (row) => {
           // Validate required fields
           if (!row.title || !row.authors || !row.totalCopies) {
-            errors.push(`Row ${csvData.length + 1}: Missing required fields (title, authors, totalCopies)`);
+            csvErrors.push(`Row ${csvData.length + 1}: Missing required fields (title, authors, totalCopies)`);
             return;
           }
 
           // Validate ISBN formats
           if (row.isbn13 && !/^\d{13}$/.test(row.isbn13)) {
-            errors.push(`Row ${csvData.length + 1}: Invalid ISBN13 format`);
+            csvErrors.push(`Row ${csvData.length + 1}: Invalid ISBN13 format`);
             return;
           }
 
           if (row.isbn10 && !/^\d{10}$/.test(row.isbn10)) {
-            errors.push(`Row ${csvData.length + 1}: Invalid ISBN10 format`);
+            csvErrors.push(`Row ${csvData.length + 1}: Invalid ISBN10 format`);
             return;
           }
 
           // Validate totalCopies
           const totalCopies = parseInt(row.totalCopies);
           if (isNaN(totalCopies) || totalCopies < 1) {
-            errors.push(`Row ${csvData.length + 1}: Invalid totalCopies value`);
+            csvErrors.push(`Row ${csvData.length + 1}: Invalid totalCopies value`);
             return;
           }
 
@@ -101,14 +101,14 @@ export const importBooks = async (req: Request, res: Response) => {
           if (row.publishedYear) {
             const year = parseInt(row.publishedYear);
             if (isNaN(year) || year < 1000 || year > new Date().getFullYear() + 1) {
-              errors.push(`Row ${csvData.length + 1}: Invalid publishedYear value`);
+              csvErrors.push(`Row ${csvData.length + 1}: Invalid publishedYear value`);
               return;
             }
           }
 
           // Validate coverUrl
           if (row.coverUrl && !/^https?:\/\/.+/.test(row.coverUrl)) {
-            errors.push(`Row ${csvData.length + 1}: Invalid coverUrl format`);
+            csvErrors.push(`Row ${csvData.length + 1}: Invalid coverUrl format`);
             return;
           }
 
@@ -134,11 +134,11 @@ export const importBooks = async (req: Request, res: Response) => {
     });
 
     // If there are validation errors, return them
-    if (errors.length > 0) {
+    if (csvErrors.length > 0) {
       return res.status(400).json({
         success: false,
         error: 'CSV validation failed',
-        details: errors
+        details: csvErrors
       });
     }
 
@@ -240,7 +240,7 @@ export const importBooks = async (req: Request, res: Response) => {
       }
     }
 
-    res.json({
+    return res.json({
       success: true,
       message: 'CSV import completed',
       data: results
@@ -248,7 +248,7 @@ export const importBooks = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Import books error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to import books from CSV'
     });
@@ -341,10 +341,12 @@ export const exportBooks = async (req: Request, res: Response) => {
     fileStream.on('end', () => {
       fs.unlinkSync('temp-export.csv');
     });
+    
+    return; // File stream handles the response
 
   } catch (error) {
     console.error('Export books error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to export books to CSV'
     });
@@ -411,10 +413,12 @@ export const getCSVTemplate = async (req: Request, res: Response) => {
     fileStream.on('end', () => {
       fs.unlinkSync('temp-template.csv');
     });
+    
+    return; // File stream handles the response
 
   } catch (error) {
     console.error('Get CSV template error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to generate CSV template'
     });

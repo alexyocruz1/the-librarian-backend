@@ -75,14 +75,14 @@ const createSuperAdmin = async (options: SetupOptions) => {
 
     // Generate tokens for initial login
     const accessToken = generateAccessToken({
-      userId: superAdmin._id.toString(),
+      userId: (superAdmin._id as any).toString(),
       email: superAdmin.email,
       role: superAdmin.role,
       libraries: superAdmin.libraries
     });
 
     const refreshToken = generateRefreshToken({
-      userId: superAdmin._id.toString(),
+      userId: (superAdmin._id as any).toString(),
       email: superAdmin.email,
       role: superAdmin.role,
       libraries: superAdmin.libraries

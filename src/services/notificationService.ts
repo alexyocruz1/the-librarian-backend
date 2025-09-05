@@ -29,7 +29,7 @@ class NotificationService {
 
   private initializeEmailTransporter() {
     if (process.env.EMAIL_SERVICE && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-      this.emailTransporter = nodemailer.createTransporter({
+      this.emailTransporter = nodemailer.createTransport({
         service: process.env.EMAIL_SERVICE,
         auth: {
           user: process.env.EMAIL_USER,
@@ -283,10 +283,10 @@ class NotificationService {
       for (const admin of admins) {
         await this.sendRealtimeNotification({
           ...notification,
-          userId: admin._id.toString(),
+          userId: (admin._id as any).toString(),
         });
 
-        await this.sendEmailNotification(admin._id.toString(), notification);
+        await this.sendEmailNotification((admin._id as any).toString(), notification);
       }
 
       console.log(`Sent pending approval notifications to ${admins.length} admins`);

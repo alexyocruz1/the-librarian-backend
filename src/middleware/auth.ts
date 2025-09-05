@@ -21,26 +21,26 @@ if (!JWT_SECRET || !JWT_REFRESH_SECRET) {
 
 // Generate access token
 export const generateAccessToken = (payload: JWTPayload): string => {
-  return jwt.sign(payload, JWT_SECRET, {
+  return jwt.sign(payload, JWT_SECRET as string, {
     expiresIn: process.env.JWT_EXPIRES_IN || '15m'
-  });
+  } as jwt.SignOptions);
 };
 
 // Generate refresh token
 export const generateRefreshToken = (payload: JWTPayload): string => {
-  return jwt.sign(payload, JWT_REFRESH_SECRET, {
+  return jwt.sign(payload, JWT_REFRESH_SECRET as string, {
     expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d'
-  });
+  } as jwt.SignOptions);
 };
 
 // Verify access token
 export const verifyAccessToken = (token: string): JWTPayload => {
-  return jwt.verify(token, JWT_SECRET) as JWTPayload;
+  return jwt.verify(token, JWT_SECRET as string) as JWTPayload;
 };
 
 // Verify refresh token
 export const verifyRefreshToken = (token: string): JWTPayload => {
-  return jwt.verify(token, JWT_REFRESH_SECRET) as JWTPayload;
+  return jwt.verify(token, JWT_REFRESH_SECRET as string) as JWTPayload;
 };
 
 // Authentication middleware
@@ -60,7 +60,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     try {
       const payload = verifyAccessToken(token);
       req.user = payload;
-      next();
+      return next();
     } catch (error) {
       return res.status(401).json({
         success: false,
@@ -93,7 +93,7 @@ export const authorize = (...roles: UserRole[]) => {
       });
     }
 
-    next();
+    return next();
   };
 };
 
@@ -130,7 +130,7 @@ export const authorizeLibraryAccess = (req: Request, res: Response, next: NextFu
     }
   }
 
-  next();
+  return next();
 };
 
 // Optional authentication middleware (doesn't fail if no token)
@@ -150,10 +150,10 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
       }
     }
     
-    next();
+    return next();
   } catch (error) {
     console.error('Optional authentication error:', error);
-    next();
+    return next();
   }
 };
 
@@ -183,14 +183,14 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
 
       // Generate new tokens
       const newAccessToken = generateAccessToken({
-        userId: user._id.toString(),
+        userId: (user._id as any).toString(),
         email: user.email,
         role: user.role,
         libraries: user.libraries
       });
 
       const newRefreshToken = generateRefreshToken({
-        userId: user._id.toString(),
+        userId: (user._id as any).toString(),
         email: user.email,
         role: user.role,
         libraries: user.libraries
@@ -204,7 +204,7 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
         maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
       });
 
-      res.json({
+      return res.json({
         success: true,
         data: {
           accessToken: newAccessToken,

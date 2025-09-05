@@ -73,7 +73,7 @@ export const getInventories = async (req: Request, res: Response) => {
       Inventory.countDocuments(query)
     ]);
 
-    res.json({
+    return res.json({
       success: true,
       data: { inventories },
       pagination: {
@@ -86,7 +86,7 @@ export const getInventories = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Get inventories error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get inventories'
     });
@@ -109,14 +109,14 @@ export const getInventoryById = async (req: Request, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: { inventory }
     });
 
   } catch (error) {
     console.error('Get inventory error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get inventory'
     });
@@ -198,7 +198,7 @@ export const createInventory = async (req: Request, res: Response) => {
       { path: 'titleId', select: 'title authors isbn13 isbn10' }
     ]);
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: 'Inventory created successfully',
       data: { 
@@ -209,7 +209,7 @@ export const createInventory = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Create inventory error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to create inventory'
     });
@@ -298,7 +298,7 @@ export const updateInventory = async (req: Request, res: Response) => {
       { path: 'titleId', select: 'title authors isbn13 isbn10' }
     ]);
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Inventory updated successfully',
       data: { inventory: updatedInventory }
@@ -306,7 +306,7 @@ export const updateInventory = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Update inventory error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to update inventory'
     });
@@ -335,14 +335,14 @@ export const deleteInventory = async (req: Request, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Inventory deleted successfully'
     });
 
   } catch (error) {
     console.error('Delete inventory error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to delete inventory'
     });
@@ -356,14 +356,14 @@ export const getAvailableInventories = async (req: Request, res: Response) => {
 
     const inventories = await Inventory.findAvailable(libraryId);
 
-    res.json({
+    return res.json({
       success: true,
       data: { inventories }
     });
 
   } catch (error) {
     console.error('Get available inventories error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get available inventories'
     });
@@ -385,7 +385,7 @@ export const updateCopyCounts = async (req: Request, res: Response) => {
 
     const updatedInventory = await Inventory.updateCopyCounts(id);
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Copy counts updated successfully',
       data: { inventory: updatedInventory }
@@ -393,7 +393,7 @@ export const updateCopyCounts = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Update copy counts error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to update copy counts'
     });

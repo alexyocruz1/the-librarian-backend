@@ -1,9 +1,14 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IBorrowRequest, RequestStatus } from '@/types';
 
-export interface IBorrowRequestDocument extends IBorrowRequest, Document {}
+export interface IBorrowRequestDocument extends Omit<IBorrowRequest, '_id'>, Document {}
 
-const BorrowRequestSchema = new Schema<IBorrowRequestDocument>({
+export interface IBorrowRequestModel extends mongoose.Model<IBorrowRequestDocument> {
+  findPending(libraryId?: string): Promise<IBorrowRequestDocument[]>;
+  findByUser(userId: string, status?: string): Promise<IBorrowRequestDocument[]>;
+}
+
+const BorrowRequestSchema = new Schema({
   userId: {
     type: Schema.Types.ObjectId,
     ref: 'User',
@@ -122,4 +127,4 @@ BorrowRequestSchema.statics.findByTitle = function(titleId: string, libraryId?: 
     .sort({ requestedAt: 1 });
 };
 
-export const BorrowRequest = mongoose.model<IBorrowRequestDocument>('BorrowRequest', BorrowRequestSchema);
+export const BorrowRequest = mongoose.model<IBorrowRequestDocument, IBorrowRequestModel>('BorrowRequest', BorrowRequestSchema);

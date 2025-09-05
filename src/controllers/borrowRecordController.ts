@@ -76,7 +76,7 @@ export const getBorrowRecords = async (req: Request, res: Response) => {
       BorrowRecord.countDocuments(query)
     ]);
 
-    res.json({
+    return res.json({
       success: true,
       data: { records },
       pagination: {
@@ -89,7 +89,7 @@ export const getBorrowRecords = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Get borrow records error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get borrow records'
     });
@@ -135,14 +135,14 @@ export const getBorrowRecordById = async (req: Request, res: Response) => {
       }
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: { record }
     });
 
   } catch (error) {
     console.error('Get borrow record error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get borrow record'
     });
@@ -233,7 +233,7 @@ export const updateBorrowRecord = async (req: Request, res: Response) => {
       { path: 'approvedBy', select: 'name email' }
     ]);
 
-    res.json({
+    return res.json({
       success: true,
       message: `Record updated to ${status} successfully`,
       data: { record }
@@ -241,7 +241,7 @@ export const updateBorrowRecord = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Update borrow record error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to update borrow record'
     });
@@ -278,14 +278,14 @@ export const getActiveLoans = async (req: Request, res: Response) => {
       libraryId as string
     );
 
-    res.json({
+    return res.json({
       success: true,
       data: { loans }
     });
 
   } catch (error) {
     console.error('Get active loans error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get active loans'
     });
@@ -311,14 +311,14 @@ export const getOverdueRecords = async (req: Request, res: Response) => {
 
     const overdueRecords = await BorrowRecord.findOverdue(libraryId as string);
 
-    res.json({
+    return res.json({
       success: true,
       data: { overdueRecords }
     });
 
   } catch (error) {
     console.error('Get overdue records error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get overdue records'
     });
@@ -343,14 +343,14 @@ export const getUserHistory = async (req: Request, res: Response) => {
 
     const history = await BorrowRecord.findByUser(userId, parseInt(limit as string));
 
-    res.json({
+    return res.json({
       success: true,
       data: { history }
     });
 
   } catch (error) {
     console.error('Get user history error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get user history'
     });
@@ -421,7 +421,7 @@ export const returnBook = async (req: Request, res: Response) => {
       { path: 'approvedBy', select: 'name email' }
     ]);
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Book returned successfully',
       data: { record }
@@ -429,7 +429,7 @@ export const returnBook = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Return book error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to return book'
     });

@@ -151,7 +151,7 @@ export const getTitles = async (req: Request, res: Response) => {
     }
 
     const skip = (page - 1) * limit;
-    const sortOptions = search ? { score: { $meta: 'textScore' } } : { title: 1 };
+    const sortOptions: any = search ? { score: { $meta: 'textScore' } } : { title: 1 };
 
     const [titles, total] = await Promise.all([
       Title.find(query, search ? { score: { $meta: 'textScore' } } : {})
@@ -161,7 +161,7 @@ export const getTitles = async (req: Request, res: Response) => {
       Title.countDocuments(query)
     ]);
 
-    res.json({
+    return res.json({
       success: true,
       data: { titles },
       pagination: {
@@ -174,7 +174,7 @@ export const getTitles = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Get titles error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get titles'
     });
@@ -194,14 +194,14 @@ export const getTitleById = async (req: Request, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: { title }
     });
 
   } catch (error) {
     console.error('Get title error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get title'
     });
@@ -248,7 +248,7 @@ export const createTitle = async (req: Request, res: Response) => {
     const title = new Title(titleData);
     await title.save();
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: 'Title created successfully',
       data: { title }
@@ -256,7 +256,7 @@ export const createTitle = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Create title error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to create title'
     });
@@ -330,7 +330,7 @@ export const updateTitle = async (req: Request, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Title updated successfully',
       data: { title }
@@ -338,7 +338,7 @@ export const updateTitle = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Update title error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to update title'
     });
@@ -367,14 +367,14 @@ export const deleteTitle = async (req: Request, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Title deleted successfully'
     });
 
   } catch (error) {
     console.error('Delete title error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to delete title'
     });
@@ -395,14 +395,14 @@ export const searchTitles = async (req: Request, res: Response) => {
 
     const titles = await Title.searchTitles(q, parseInt(limit as string));
 
-    res.json({
+    return res.json({
       success: true,
       data: { titles }
     });
 
   } catch (error) {
     console.error('Search titles error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to search titles'
     });
@@ -422,14 +422,14 @@ export const getTitleByISBN = async (req: Request, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: { title }
     });
 
   } catch (error) {
     console.error('Get title by ISBN error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get title by ISBN'
     });

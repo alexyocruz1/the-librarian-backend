@@ -82,7 +82,7 @@ export const getBorrowRequests = async (req: Request, res: Response) => {
       BorrowRequest.countDocuments(query)
     ]);
 
-    res.json({
+    return res.json({
       success: true,
       data: { requests },
       pagination: {
@@ -95,7 +95,7 @@ export const getBorrowRequests = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Get borrow requests error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get borrow requests'
     });
@@ -141,14 +141,14 @@ export const getBorrowRequestById = async (req: Request, res: Response) => {
       }
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: { request }
     });
 
   } catch (error) {
     console.error('Get borrow request error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get borrow request'
     });
@@ -241,7 +241,7 @@ export const createBorrowRequest = async (req: Request, res: Response) => {
       { path: 'inventoryId' }
     ]);
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: 'Borrow request created successfully',
       data: { request }
@@ -249,7 +249,7 @@ export const createBorrowRequest = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Create borrow request error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to create borrow request'
     });
@@ -324,7 +324,7 @@ export const updateBorrowRequest = async (req: Request, res: Response) => {
       }
 
       // Assign copy to request
-      request.copyId = availableCopy._id;
+      request.copyId = (availableCopy._id as any).toString();
 
       // Create borrow record
       const dueDate = new Date();
@@ -349,7 +349,7 @@ export const updateBorrowRequest = async (req: Request, res: Response) => {
       await availableCopy.save();
 
       // Update inventory available copies count
-      await Inventory.updateCopyCounts(request.inventoryId);
+      await (Inventory as any).updateCopyCounts(request.inventoryId);
     }
 
     await request.save();
@@ -364,7 +364,7 @@ export const updateBorrowRequest = async (req: Request, res: Response) => {
       { path: 'decidedBy', select: 'name email' }
     ]);
 
-    res.json({
+    return res.json({
       success: true,
       message: `Request ${status} successfully`,
       data: { request }
@@ -372,7 +372,7 @@ export const updateBorrowRequest = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Update borrow request error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to update borrow request'
     });
@@ -415,7 +415,7 @@ export const cancelBorrowRequest = async (req: Request, res: Response) => {
     request.decidedAt = new Date();
     await request.save();
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Request cancelled successfully',
       data: { request }
@@ -423,7 +423,7 @@ export const cancelBorrowRequest = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Cancel borrow request error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to cancel borrow request'
     });
@@ -448,14 +448,14 @@ export const getPendingRequests = async (req: Request, res: Response) => {
 
     const requests = await BorrowRequest.findPending(libraryId as string);
 
-    res.json({
+    return res.json({
       success: true,
       data: { requests }
     });
 
   } catch (error) {
     console.error('Get pending requests error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get pending requests'
     });
@@ -480,14 +480,14 @@ export const getUserRequests = async (req: Request, res: Response) => {
 
     const requests = await BorrowRequest.findByUser(userId, status as any);
 
-    res.json({
+    return res.json({
       success: true,
       data: { requests }
     });
 
   } catch (error) {
     console.error('Get user requests error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get user requests'
     });

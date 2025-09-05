@@ -116,7 +116,7 @@ export const getLibraries = async (req: Request, res: Response) => {
       Library.countDocuments(query)
     ]);
 
-    res.json({
+    return res.json({
       success: true,
       data: { libraries },
       pagination: {
@@ -129,7 +129,7 @@ export const getLibraries = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Get libraries error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get libraries'
     });
@@ -149,14 +149,14 @@ export const getLibraryById = async (req: Request, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: { library }
     });
 
   } catch (error) {
     console.error('Get library error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get library'
     });
@@ -197,7 +197,7 @@ export const createLibrary = async (req: Request, res: Response) => {
 
     await library.save();
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: 'Library created successfully',
       data: { library }
@@ -205,7 +205,7 @@ export const createLibrary = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Create library error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to create library'
     });
@@ -264,7 +264,7 @@ export const updateLibrary = async (req: Request, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Library updated successfully',
       data: { library }
@@ -272,7 +272,7 @@ export const updateLibrary = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Update library error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to update library'
     });
@@ -308,14 +308,14 @@ export const deleteLibrary = async (req: Request, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Library deleted successfully'
     });
 
   } catch (error) {
     console.error('Delete library error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to delete library'
     });
@@ -358,7 +358,7 @@ export const assignAdminToLibrary = async (req: Request, res: Response) => {
       await user.save();
     }
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Admin assigned to library successfully',
       data: { user }
@@ -366,7 +366,7 @@ export const assignAdminToLibrary = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Assign admin error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to assign admin to library'
     });
@@ -400,7 +400,7 @@ export const removeAdminFromLibrary = async (req: Request, res: Response) => {
       await user.save();
     }
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Admin removed from library successfully',
       data: { user }
@@ -408,7 +408,7 @@ export const removeAdminFromLibrary = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Remove admin error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to remove admin from library'
     });
@@ -435,14 +435,14 @@ export const getLibraryAdmins = async (req: Request, res: Response) => {
       libraries: id
     }).select('-passwordHash');
 
-    res.json({
+    return res.json({
       success: true,
       data: { admins }
     });
 
   } catch (error) {
     console.error('Get library admins error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get library admins'
     });

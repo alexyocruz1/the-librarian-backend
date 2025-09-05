@@ -1,9 +1,14 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { ICopy, CopyStatus, CopyCondition } from '@/types';
 
-export interface ICopyDocument extends ICopy, Document {}
+export interface ICopyDocument extends Omit<ICopy, '_id'>, Document {}
 
-const CopySchema = new Schema<ICopyDocument>({
+export interface ICopyModel extends mongoose.Model<ICopyDocument> {
+  findAvailable(inventoryId?: string, libraryId?: string): Promise<ICopyDocument[]>;
+  findByBarcode(barcode: string, libraryId?: string): Promise<ICopyDocument | null>;
+}
+
+const CopySchema = new Schema({
   inventoryId: {
     type: Schema.Types.ObjectId,
     ref: 'Inventory',
@@ -93,7 +98,7 @@ CopySchema.pre('save', async function(next) {
       const library = await Library.findById(this.libraryId);
       if (library) {
         const year = new Date().getFullYear();
-        const count = await this.constructor.countDocuments({ 
+        const count = await (this.constructor as any).countDocuments({ 
           libraryId: this.libraryId,
           barcode: { $regex: `^${library.code}-${year}-` }
         });
@@ -110,17 +115,17 @@ CopySchema.pre('save', async function(next) {
 CopySchema.post('save', async function() {
   try {
     const Inventory = mongoose.model('Inventory');
-    await Inventory.updateCopyCounts(this.inventoryId);
+    await (Inventory as any).updateCopyCounts(this.inventoryId);
   } catch (error) {
     console.error('Error updating inventory counts:', error);
   }
 });
 
 // Post-remove middleware to update inventory counts
-CopySchema.post('remove', async function() {
+CopySchema.post('deleteOne', async function() {
   try {
     const Inventory = mongoose.model('Inventory');
-    await Inventory.updateCopyCounts(this.inventoryId);
+    await (Inventory as any).updateCopyCounts((this as any).inventoryId);
   } catch (error) {
     console.error('Error updating inventory counts:', error);
   }
@@ -141,4 +146,4 @@ CopySchema.statics.findByBarcode = function(barcode: string, libraryId?: string)
   return this.findOne(query).populate('inventoryId').populate('titleId');
 };
 
-export const Copy = mongoose.model<ICopyDocument>('Copy', CopySchema);
+export const Copy = mongoose.model<ICopyDocument, ICopyModel>('Copy', CopySchema);

@@ -92,7 +92,7 @@ export const getCopies = async (req: Request, res: Response) => {
       Copy.countDocuments(query)
     ]);
 
-    res.json({
+    return res.json({
       success: true,
       data: { copies },
       pagination: {
@@ -105,7 +105,7 @@ export const getCopies = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Get copies error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get copies'
     });
@@ -129,14 +129,14 @@ export const getCopyById = async (req: Request, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: { copy }
     });
 
   } catch (error) {
     console.error('Get copy error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get copy'
     });
@@ -219,7 +219,7 @@ export const createCopy = async (req: Request, res: Response) => {
       { path: 'titleId', select: 'title authors isbn13 isbn10' }
     ]);
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: 'Copy created successfully',
       data: { copy }
@@ -227,7 +227,7 @@ export const createCopy = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Create copy error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to create copy'
     });
@@ -299,7 +299,7 @@ export const updateCopy = async (req: Request, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Copy updated successfully',
       data: { copy: updatedCopy }
@@ -307,7 +307,7 @@ export const updateCopy = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Update copy error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to update copy'
     });
@@ -337,14 +337,14 @@ export const deleteCopy = async (req: Request, res: Response) => {
 
     await copy.deleteOne();
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Copy deleted successfully'
     });
 
   } catch (error) {
     console.error('Delete copy error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to delete copy'
     });
@@ -361,14 +361,14 @@ export const getAvailableCopies = async (req: Request, res: Response) => {
       titleId as string
     );
 
-    res.json({
+    return res.json({
       success: true,
       data: { copies }
     });
 
   } catch (error) {
     console.error('Get available copies error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get available copies'
     });
@@ -393,14 +393,14 @@ export const getCopyByBarcode = async (req: Request, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: { copy }
     });
 
   } catch (error) {
     console.error('Get copy by barcode error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get copy by barcode'
     });
@@ -443,7 +443,7 @@ export const generateBarcode = async (req: Request, res: Response) => {
     copy.barcode = barcode;
     await copy.save();
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Barcode generated successfully',
       data: { barcode }
@@ -451,7 +451,7 @@ export const generateBarcode = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Generate barcode error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to generate barcode'
     });
