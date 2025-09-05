@@ -22,9 +22,19 @@ const getDatabaseName = (): string => {
 
 // Create connection URL with database name
 const createConnectionUrl = (): string => {
-  const baseUrl = MONGODB_URI.replace(/\/\?/, '/');
   const dbName = getDatabaseName();
-  return `${baseUrl}/${dbName}?retryWrites=true&w=majority`;
+  
+  // Parse the existing URI to extract the base connection string
+  const url = new URL(MONGODB_URI);
+  
+  // Set the database name in the pathname
+  url.pathname = `/${dbName}`;
+  
+  // Ensure we have the necessary query parameters
+  url.searchParams.set('retryWrites', 'true');
+  url.searchParams.set('w', 'majority');
+  
+  return url.toString();
 };
 
 export const connectDatabase = async (): Promise<void> => {
