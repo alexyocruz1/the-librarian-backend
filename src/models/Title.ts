@@ -12,7 +12,6 @@ const TitleSchema = new Schema({
   isbn13: {
     type: String,
     sparse: true, // Allows multiple null values
-    unique: true,
     match: [/^\d{13}$/, 'ISBN13 must be exactly 13 digits']
   },
   isbn10: {

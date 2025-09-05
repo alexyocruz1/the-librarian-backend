@@ -79,7 +79,6 @@ const BorrowRecordSchema = new Schema({
 });
 
 // Indexes
-BorrowRecordSchema.index({ copyId: 1, status: 1 });
 BorrowRecordSchema.index({ userId: 1, borrowDate: -1 });
 BorrowRecordSchema.index({ libraryId: 1, status: 1 });
 BorrowRecordSchema.index({ dueDate: 1, status: 1 });

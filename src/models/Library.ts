@@ -7,7 +7,6 @@ const LibrarySchema = new Schema({
   code: {
     type: String,
     required: [true, 'Library code is required'],
-    unique: true,
     uppercase: true,
     trim: true,
     maxlength: [20, 'Library code cannot exceed 20 characters'],
