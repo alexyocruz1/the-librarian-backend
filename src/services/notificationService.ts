@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { Server as SocketIOServer } from 'socket.io';
 import { User } from '../models/User';
 import { BorrowRecord } from '../models/BorrowRecord';
@@ -22,13 +23,20 @@ export interface EmailTemplate {
 class NotificationService {
   private io: SocketIOServer | null = null;
   private emailTransporter: nodemailer.Transporter | null = null;
+  private resend: Resend | null = null;
 
   constructor() {
     this.initializeEmailTransporter();
   }
 
   private initializeEmailTransporter() {
-    if (process.env.EMAIL_SERVICE && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+    // Initialize Resend if API key is provided
+    if (process.env.RESEND_API_KEY) {
+      this.resend = new Resend(process.env.RESEND_API_KEY);
+      console.log('✅ Resend email service initialized');
+    }
+    // Fallback to nodemailer for other services
+    else if (process.env.EMAIL_SERVICE && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
       this.emailTransporter = nodemailer.createTransport({
         service: process.env.EMAIL_SERVICE,
         auth: {
@@ -36,6 +44,7 @@ class NotificationService {
           pass: process.env.EMAIL_PASS,
         },
       });
+      console.log('✅ Nodemailer email service initialized');
     }
   }
 
@@ -89,8 +98,8 @@ class NotificationService {
 
   // Send email notification
   async sendEmailNotification(userId: string, notification: NotificationData) {
-    if (!this.emailTransporter) {
-      console.warn('Email transporter not configured');
+    if (!this.emailTransporter && !this.resend) {
+      console.warn('No email service configured');
       return;
     }
 
@@ -103,15 +112,27 @@ class NotificationService {
 
       const template = this.getEmailTemplate(notification);
       
-      await this.emailTransporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: user.email,
-        subject: template.subject,
-        html: template.html,
-        text: template.text,
-      });
-
-      console.log(`Email notification sent to ${user.email}`);
+      // Use Resend if available
+      if (this.resend) {
+        await this.resend.emails.send({
+          from: 'Library System <noreply@yourlibrary.com>',
+          to: [user.email],
+          subject: template.subject,
+          html: template.html,
+        });
+        console.log(`Resend email sent to ${user.email}: ${notification.title}`);
+      }
+      // Fallback to nodemailer
+      else if (this.emailTransporter) {
+        await this.emailTransporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: user.email,
+          subject: template.subject,
+          html: template.html,
+          text: template.text,
+        });
+        console.log(`Nodemailer email sent to ${user.email}: ${notification.title}`);
+      }
     } catch (error) {
       console.error('Error sending email notification:', error);
     }
