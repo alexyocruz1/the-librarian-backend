@@ -1,10 +1,12 @@
 services:
   - type: web
     name: the-librarian-backend
-    env: node
+    runtime: node
     plan: free
     buildCommand: npm install && npm run build
-    startCommand: node dist/server.js
+    startCommand: node start.js
+    rootDir: .
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
