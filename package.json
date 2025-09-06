@@ -8,7 +8,7 @@
     "build": "tsc && tsc-alias",
     "start": "node dist/server.js",
     "start:render": "node start.js",
-    "setup": "ts-node src/scripts/setup.ts",
+    "setup": "ts-node -r tsconfig-paths/register src/scripts/setup.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -69,7 +69,8 @@
     "nodemon": "^3.0.2",
     "supertest": "^7.1.4",
     "ts-jest": "^29.1.1",
-    "ts-node": "^10.9.1"
+    "ts-node": "^10.9.1",
+    "tsconfig-paths": "^4.2.0"
   },
   "engines": {
     "node": ">=18.0.0"

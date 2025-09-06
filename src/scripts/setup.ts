@@ -1,9 +1,9 @@
 import dotenv from 'dotenv';
-import { connectDatabase, disconnectDatabase } from '@/config/database';
-import { User } from '@/models/User';
-import { Library } from '@/models/Library';
-import { generateAccessToken, generateRefreshToken } from '@/middleware/auth';
-import { UserRole } from '@/types';
+import { connectDatabase, disconnectDatabase } from '../config/database';
+import { User } from '../models/User';
+import { Library } from '../models/Library';
+import { generateAccessToken, generateRefreshToken } from '../middleware/auth';
+import { UserRole } from '../types';
 
 // Load environment variables
 dotenv.config();
