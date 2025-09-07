@@ -30,7 +30,11 @@ export const loginValidation = [
     .withMessage('Please provide a valid email'),
   body('password')
     .notEmpty()
-    .withMessage('Password is required')
+    .withMessage('Password is required'),
+  body('rememberMe')
+    .optional()
+    .isBoolean()
+    .withMessage('Remember me must be a boolean value')
 ];
 
 // Register new user
@@ -131,7 +135,7 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    const { email, password } = req.body;
+    const { email, password, rememberMe = false } = req.body;
 
     // Find user by email
     const user = await User.findOne({ email });
@@ -174,12 +178,16 @@ export const login = async (req: Request, res: Response) => {
       libraries: user.libraries
     });
 
-    // Set refresh token in httpOnly cookie
+    // Set refresh token in httpOnly cookie with duration based on rememberMe
+    const cookieMaxAge = rememberMe 
+      ? 30 * 24 * 60 * 60 * 1000 // 30 days if remember me is checked
+      : 24 * 60 * 60 * 1000;     // 1 day if remember me is not checked
+    
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      maxAge: cookieMaxAge
     });
 
     return res.json({
