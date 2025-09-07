@@ -287,8 +287,8 @@ export const updateProfile = async (req: Request, res: Response) => {
       });
     }
 
-    const { name, profile } = req.body;
-    const allowedUpdates = ['name', 'profile'];
+    const { name, profile, preferences } = req.body;
+    const allowedUpdates = ['name', 'profile', 'preferences'];
 
     // Filter allowed updates
     const updates: any = {};

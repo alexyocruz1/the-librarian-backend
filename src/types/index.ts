@@ -14,6 +14,16 @@ export interface IUser {
   profile?: {
     phone?: string;
   };
+  preferences?: {
+    language?: string;
+    timezone?: string;
+    notifications?: {
+      email?: boolean;
+      push?: boolean;
+      borrowReminders?: boolean;
+      systemUpdates?: boolean;
+    };
+  };
   lastLoginAt?: Date;
   createdAt: Date;
   updatedAt: Date;

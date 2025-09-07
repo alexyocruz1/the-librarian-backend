@@ -49,6 +49,35 @@ const UserSchema = new Schema({
       match: [/^\+?[\d\s\-\(\)]+$/, 'Please enter a valid phone number']
     }
   },
+  preferences: {
+    language: {
+      type: String,
+      default: 'en',
+      enum: ['en', 'es', 'fr']
+    },
+    timezone: {
+      type: String,
+      default: 'UTC'
+    },
+    notifications: {
+      email: {
+        type: Boolean,
+        default: true
+      },
+      push: {
+        type: Boolean,
+        default: true
+      },
+      borrowReminders: {
+        type: Boolean,
+        default: true
+      },
+      systemUpdates: {
+        type: Boolean,
+        default: false
+      }
+    }
+  },
   lastLoginAt: {
     type: Date,
     default: null
