@@ -90,6 +90,7 @@ import borrowRequestRoutes from '@/routes/borrowRequests';
 import borrowRecordRoutes from '@/routes/borrowRecords';
 import csvRoutes from '@/routes/csv';
 import dashboardRoutes from '@/routes/dashboard';
+import reportsRoutes from '@/routes/reports';
 
 // API routes
 app.use('/api/v1/auth', authRoutes);
@@ -102,6 +103,7 @@ app.use('/api/v1/borrow-requests', borrowRequestRoutes);
 app.use('/api/v1/borrow-records', borrowRecordRoutes);
 app.use('/api/v1/csv', csvRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
+app.use('/api/v1/reports', reportsRoutes);
 
 // API info endpoint
 app.get('/api/v1', (req, res) => {
@@ -115,10 +117,11 @@ app.get('/api/v1', (req, res) => {
       titles: '/api/v1/titles',
       inventories: '/api/v1/inventories',
       copies: '/api/v1/copies',
-      borrowRequests: '/api/v1/borrow-requests',
-      borrowRecords: '/api/v1/borrow-records',
-      csv: '/api/v1/csv',
-      dashboard: '/api/v1/dashboard'
+            borrowRequests: '/api/v1/borrow-requests',
+            borrowRecords: '/api/v1/borrow-records',
+            csv: '/api/v1/csv',
+            dashboard: '/api/v1/dashboard',
+            reports: '/api/v1/reports'
     }
   });
 });
