@@ -163,7 +163,10 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    // Update last login timestamp
+    // Store the previous login time before updating it
+    const previousLoginAt = user.lastLoginAt;
+    
+    // Update last login timestamp to current time
     user.lastLoginAt = new Date();
     await user.save();
 
@@ -205,7 +208,8 @@ export const login = async (req: Request, res: Response) => {
           email: user.email,
           role: user.role,
           status: user.status,
-          libraries: user.libraries
+          libraries: user.libraries,
+          lastLoginAt: previousLoginAt // Send the previous login time for display
         }
       }
     });
