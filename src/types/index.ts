@@ -14,6 +14,7 @@ export interface IUser {
   profile?: {
     phone?: string;
   };
+  lastLoginAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -163,6 +163,10 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
+    // Update last login timestamp
+    user.lastLoginAt = new Date();
+    await user.save();
+
     // Generate tokens
     const accessToken = generateAccessToken({
       userId: (user._id as any).toString(),

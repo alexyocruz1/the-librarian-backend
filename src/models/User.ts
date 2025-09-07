@@ -48,6 +48,10 @@ const UserSchema = new Schema({
       type: String,
       match: [/^\+?[\d\s\-\(\)]+$/, 'Please enter a valid phone number']
     }
+  },
+  lastLoginAt: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true,
