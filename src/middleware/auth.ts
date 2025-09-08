@@ -113,7 +113,7 @@ export const authorizeLibraryAccess = (req: Request, res: Response, next: NextFu
 
   // Admin needs to have access to the specific library
   if (req.user.role === 'admin') {
-    const libraryId = req.params.libraryId || req.body.libraryId || req.query.libraryId;
+    const libraryId = req.params.id || req.params.libraryId || req.body.libraryId || req.query.libraryId;
     
     if (!libraryId) {
       return res.status(400).json({
