@@ -11,12 +11,10 @@ export interface ITitleModel extends mongoose.Model<ITitleDocument> {
 const TitleSchema = new Schema({
   isbn13: {
     type: String,
-    sparse: true, // Allows multiple null values
     match: [/^\d{13}$/, 'ISBN13 must be exactly 13 digits']
   },
   isbn10: {
     type: String,
-    sparse: true,
     match: [/^\d{10}$/, 'ISBN10 must be exactly 10 digits']
   },
   title: {
