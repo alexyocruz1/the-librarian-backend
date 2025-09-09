@@ -3,13 +3,14 @@ import {
   register,
   login,
   logout,
+  refreshToken,
   getProfile,
   updateProfile,
   changePassword,
   registerValidation,
   loginValidation
 } from '@/controllers/authController';
-import { authenticate, refreshToken } from '@/middleware/auth';
+import { authenticate } from '@/middleware/auth';
 import { body } from 'express-validator';
 
 const router = Router();

@@ -223,6 +223,71 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
+// Refresh access token
+export const refreshToken = async (req: Request, res: Response) => {
+  try {
+    const { refreshToken } = req.cookies;
+    
+    if (!refreshToken) {
+      return res.status(401).json({
+        success: false,
+        error: 'Refresh token not provided'
+      });
+    }
+
+    // Verify refresh token
+    const payload = verifyRefreshToken(refreshToken);
+    
+    // Find user
+    const user = await User.findById(payload.userId);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    // Check if user is active
+    if (user.status !== 'active') {
+      return res.status(403).json({
+        success: false,
+        error: `Account is ${user.status}. Please contact an administrator.`
+      });
+    }
+
+    // Generate new access token
+    const newAccessToken = generateAccessToken({
+      userId: (user._id as any).toString(),
+      email: user.email,
+      role: user.role,
+      libraries: user.libraries
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        accessToken: newAccessToken,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          status: user.status,
+          libraries: user.libraries,
+          lastLoginAt: user.lastLoginAt,
+          previousLoginAt: user.previousLoginAt
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Refresh token error:', error);
+    return res.status(401).json({
+      success: false,
+      error: 'Invalid refresh token'
+    });
+  }
+};
+
 // Logout user
 export const logout = async (req: Request, res: Response) => {
   try {
