@@ -14,8 +14,8 @@ export const createInventoryValidation = [
     .isMongoId()
     .withMessage('Valid title ID is required'),
   body('totalCopies')
-    .isInt({ min: 1 })
-    .withMessage('Total copies must be a positive integer'),
+    .isInt({ min: 0 })
+    .withMessage('Total copies must be a non-negative integer'),
   body('shelfLocation')
     .optional()
     .trim()
