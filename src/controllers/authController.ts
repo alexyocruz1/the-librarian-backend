@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import { User } from '@/models/User';
-import { generateAccessToken, generateRefreshToken } from '@/middleware/auth';
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '@/middleware/auth';
 import { UserRole } from '@/types';
 
 // Validation rules

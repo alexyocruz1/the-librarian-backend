@@ -25,6 +25,7 @@ export interface IUser {
     };
   };
   lastLoginAt?: Date;
+  previousLoginAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
