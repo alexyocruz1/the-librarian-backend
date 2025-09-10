@@ -3,6 +3,8 @@ import { body, validationResult } from 'express-validator';
 import { Title } from '@/models/Title';
 import { Inventory } from '@/models/Inventory';
 import { Copy } from '@/models/Copy';
+import { BorrowRecord } from '@/models/BorrowRecord';
+import { BorrowRequest } from '@/models/BorrowRequest';
 
 // Validation rules
 export const createTitleValidation = [
@@ -365,27 +367,56 @@ export const updateTitle = async (req: Request, res: Response) => {
   }
 };
 
-// Delete title
+// Delete title and all related data
 export const deleteTitle = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    // Check if title has any inventories
-    const inventoryCount = await Inventory.countDocuments({ titleId: id });
-    if (inventoryCount > 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Cannot delete title with existing inventories'
-      });
-    }
-
-    const title = await Title.findByIdAndDelete(id);
+    // Check if title exists
+    const title = await Title.findById(id);
     if (!title) {
       return res.status(404).json({
         success: false,
         error: 'Title not found'
       });
     }
+
+    // Get all inventories for this title
+    const inventories = await Inventory.find({ titleId: id });
+    const inventoryIds = inventories.map(inv => inv._id);
+
+    // Get all copies for these inventories
+    const copies = await Copy.find({ inventoryId: { $in: inventoryIds } });
+    const copyIds = copies.map(copy => copy._id);
+
+    // Check if there are any active borrow records
+    const activeBorrowRecords = await BorrowRecord.countDocuments({ 
+      copyId: { $in: copyIds },
+      status: { $in: ['borrowed', 'overdue'] }
+    });
+
+    if (activeBorrowRecords > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot delete title with active borrow records. Please return all borrowed copies first.'
+      });
+    }
+
+    // Delete all related data in the correct order
+    // 1. Delete borrow records (both active and historical)
+    await BorrowRecord.deleteMany({ copyId: { $in: copyIds } });
+    
+    // 2. Delete borrow requests
+    await BorrowRequest.deleteMany({ titleId: id });
+    
+    // 3. Delete copies
+    await Copy.deleteMany({ inventoryId: { $in: inventoryIds } });
+    
+    // 4. Delete inventories
+    await Inventory.deleteMany({ titleId: id });
+    
+    // 5. Finally delete the title
+    await Title.findByIdAndDelete(id);
 
     return res.json({
       success: true,
