@@ -54,7 +54,16 @@ export const updateCopyValidation = [
     .optional()
     .trim()
     .isLength({ max: 100 })
-    .withMessage('Shelf location cannot exceed 100 characters')
+    .withMessage('Shelf location cannot exceed 100 characters'),
+  body('acquiredAt')
+    .optional()
+    .custom((value) => {
+      if (value && !new Date(value).getTime()) {
+        throw new Error('Invalid acquisition date format');
+      }
+      return true;
+    })
+    .withMessage('Invalid acquisition date format')
 ];
 
 // Get all copies with filtering
@@ -236,6 +245,9 @@ export const createCopy = async (req: Request, res: Response) => {
 
 // Update copy
 export const updateCopy = async (req: Request, res: Response) => {
+  console.log('=== UPDATE COPY CALLED ===');
+  console.log('Request body:', req.body);
+  console.log('Copy ID:', req.params.id);
   try {
     // Check validation errors
     const errors = validationResult(req);
@@ -248,15 +260,22 @@ export const updateCopy = async (req: Request, res: Response) => {
     }
 
     const { id } = req.params;
-    const allowedUpdates = ['barcode', 'status', 'condition', 'shelfLocation'];
+    const allowedUpdates = ['barcode', 'status', 'condition', 'shelfLocation', 'acquiredAt'];
     
     // Filter allowed updates
     const updates: any = {};
     Object.keys(req.body).forEach(key => {
       if (allowedUpdates.includes(key)) {
-        updates[key] = req.body[key];
+        if (key === 'acquiredAt' && req.body[key]) {
+          // Convert acquiredAt string to Date object
+          updates[key] = new Date(req.body[key]);
+          console.log(`Converting acquiredAt: "${req.body[key]}" -> Date object:`, updates[key]);
+        } else {
+          updates[key] = req.body[key];
+        }
       }
     });
+    console.log('Final updates object:', updates);
 
     // Check barcode uniqueness if updating
     if (updates.barcode) {
@@ -282,6 +301,9 @@ export const updateCopy = async (req: Request, res: Response) => {
       updates.barcode = updates.barcode.toUpperCase();
     }
 
+    console.log('About to update copy with ID:', id);
+    console.log('Updates being applied:', updates);
+    
     const updatedCopy = await Copy.findByIdAndUpdate(
       id,
       updates,
@@ -291,6 +313,9 @@ export const updateCopy = async (req: Request, res: Response) => {
       { path: 'libraryId', select: 'name code' },
       { path: 'titleId', select: 'title authors isbn13 isbn10' }
     ]);
+    
+    console.log('Updated copy from database:', updatedCopy);
+    console.log('Updated copy acquiredAt:', updatedCopy?.acquiredAt);
 
     if (!updatedCopy) {
       return res.status(404).json({
