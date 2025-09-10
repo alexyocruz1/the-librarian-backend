@@ -306,12 +306,12 @@ export const importBooks = async (req: Request, res: Response) => {
           let barcode = copyData.barcode;
           
           // If multiple copies and custom barcode provided, append sequence number
-          if (copiesToCreate > 1 && copyData.barcode) {
+          if (copiesToCreate > 1 && copyData.barcode && copyData.barcode.trim()) {
             barcode = `${copyData.barcode}-${String(copyIndex + 1).padStart(3, '0')}`;
           }
           
-          // Check if copy already exists (by barcode)
-          if (barcode) {
+          // Check if copy already exists (by barcode) - only if barcode is not empty
+          if (barcode && barcode.trim()) {
             const existingCopy = await Copy.findOne({ barcode: barcode });
             if (existingCopy) {
               results.errors.push(`Row ${i + 1}, Copy ${copyIndex + 1}: Copy with barcode "${barcode}" already exists - skipping`);
@@ -325,7 +325,7 @@ export const importBooks = async (req: Request, res: Response) => {
               inventoryId: inventory._id,
               libraryId: targetLibraryId,
               titleId: title._id,
-              barcode: barcode || undefined,
+              barcode: (barcode && barcode.trim()) ? barcode : undefined,
               status: copyData.status || 'available',
               condition: copyData.condition || 'good',
               shelfLocation: copyData.shelfLocation || inventory.shelfLocation,
