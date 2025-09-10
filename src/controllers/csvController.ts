@@ -107,7 +107,7 @@ export const importBooks = async (req: Request, res: Response) => {
             description: row.Description || row.description,
             coverUrl: row['Cover URL'] || row.coverUrl,
             libraryCode: row['Library Code'] || row.libraryCode,
-            barcode: row.Barcode || row.barcode,
+            barcode: (row.Barcode || row.barcode)?.trim() || undefined,
             status: row.Status || row.status,
             condition: row.Condition || row.condition,
             shelfLocation: row['Shelf Location'] || row.shelfLocation,
