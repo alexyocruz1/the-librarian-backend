@@ -227,6 +227,7 @@ export const importBooks = async (req: Request, res: Response) => {
     // ALL-OR-NOTHING VALIDATION: First, validate all rows without creating anything
     const validationErrors: string[] = [];
     const libraries = new Map<string, any>();
+    const existingISBNs = new Set<string>();
     
     for (let i = 0; i < csvData.length; i++) {
       const copyData = csvData[i];
@@ -245,6 +246,38 @@ export const importBooks = async (req: Request, res: Response) => {
           continue;
         }
         libraries.set(copyData.libraryCode, library);
+      }
+      
+      // Check for existing ISBNs in database (treat as error)
+      if (copyData.isbn13) {
+        const existingTitle = await Title.findOne({ isbn13: copyData.isbn13 });
+        if (existingTitle) {
+          validationErrors.push(`Row ${i + 1}: Book with ISBN13 "${copyData.isbn13}" already exists in the system`);
+        }
+      }
+      
+      if (copyData.isbn10) {
+        const existingTitle = await Title.findOne({ isbn10: copyData.isbn10 });
+        if (existingTitle) {
+          validationErrors.push(`Row ${i + 1}: Book with ISBN10 "${copyData.isbn10}" already exists in the system`);
+        }
+      }
+      
+      // Check for duplicate ISBNs within the CSV itself
+      if (copyData.isbn13) {
+        if (existingISBNs.has(copyData.isbn13)) {
+          validationErrors.push(`Row ${i + 1}: Duplicate ISBN13 "${copyData.isbn13}" found within the CSV file`);
+        } else {
+          existingISBNs.add(copyData.isbn13);
+        }
+      }
+      
+      if (copyData.isbn10) {
+        if (existingISBNs.has(copyData.isbn10)) {
+          validationErrors.push(`Row ${i + 1}: Duplicate ISBN10 "${copyData.isbn10}" found within the CSV file`);
+        } else {
+          existingISBNs.add(copyData.isbn10);
+        }
       }
       
       const library = libraries.get(copyData.libraryCode);
@@ -282,7 +315,6 @@ export const importBooks = async (req: Request, res: Response) => {
     // ALL VALIDATION PASSED - Now create everything
     const results = {
       titlesCreated: 0,
-      titlesSkipped: 0,
       inventoriesCreated: 0,
       copiesCreated: 0,
       errors: [] as string[]
@@ -295,35 +327,22 @@ export const importBooks = async (req: Request, res: Response) => {
         const library = libraries.get(copyData.libraryCode!);
         const targetLibraryId = (library._id as any).toString();
 
-        // Check if title already exists by ISBN
-        let title = null;
-        if (copyData.isbn13) {
-          title = await Title.findOne({ isbn13: copyData.isbn13 });
-        }
-        if (!title && copyData.isbn10) {
-          title = await Title.findOne({ isbn10: copyData.isbn10 });
-        }
-
-        // Create title if it doesn't exist
-        if (!title) {
-          title = new Title({
-            isbn13: copyData.isbn13,
-            isbn10: copyData.isbn10,
-            title: copyData.title,
-            subtitle: copyData.subtitle,
-            authors: copyData.authors.split(',').map(author => author.trim()),
-            categories: copyData.categories ? copyData.categories.split(',').map(cat => cat.trim()) : [],
-            language: copyData.language,
-            publisher: copyData.publisher,
-            publishedYear: copyData.publishedYear,
-            description: copyData.description,
-            coverUrl: copyData.coverUrl
-          });
-          await title.save();
-          results.titlesCreated++;
-        } else {
-          results.titlesSkipped++;
-        }
+        // Always create new title (no ISBN checking since we validated uniqueness above)
+        const title = new Title({
+          isbn13: copyData.isbn13,
+          isbn10: copyData.isbn10,
+          title: copyData.title,
+          subtitle: copyData.subtitle,
+          authors: copyData.authors.split(',').map(author => author.trim()),
+          categories: copyData.categories ? copyData.categories.split(',').map(cat => cat.trim()) : [],
+          language: copyData.language,
+          publisher: copyData.publisher,
+          publishedYear: copyData.publishedYear,
+          description: copyData.description,
+          coverUrl: copyData.coverUrl
+        });
+        await title.save();
+        results.titlesCreated++;
 
         // Check if inventory already exists for this library and title
         let inventory = await Inventory.findOne({ libraryId: targetLibraryId, titleId: title._id });
