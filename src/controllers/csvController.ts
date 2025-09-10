@@ -496,7 +496,7 @@ export const getCSVTemplate = async (req: Request, res: Response) => {
         publisher: 'Sample Publisher',
         publishedYear: '2023',
         description: 'This is a sample book description.',
-        coverUrl: 'https://example.com/cover.jpg',
+        coverUrl: 'https://via.placeholder.com/300x400/cccccc/666666?text=Sample+Book',
         
         // Library Information
         libraryCode: 'ML-001',
@@ -524,7 +524,7 @@ export const getCSVTemplate = async (req: Request, res: Response) => {
         publisher: 'Tech Publisher',
         publishedYear: '2024',
         description: 'Another sample book for testing.',
-        coverUrl: 'https://example.com/cover2.jpg',
+        coverUrl: 'https://via.placeholder.com/300x400/cccccc/666666?text=Another+Book',
         
         // Library Information
         libraryCode: 'ML-001',
