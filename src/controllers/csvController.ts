@@ -312,35 +312,58 @@ export const exportBooks = async (req: Request, res: Response) => {
         .populate('inventoryId');
     }
 
+    // Debug: Log the number of copies found
+    console.log(`Found ${copies.length} copies to export`);
+    if (copies.length > 0) {
+      console.log('Sample copy structure:', {
+        _id: copies[0]._id,
+        titleId: copies[0].titleId,
+        libraryId: copies[0].libraryId,
+        inventoryId: copies[0].inventoryId,
+        barcode: copies[0].barcode,
+        status: copies[0].status
+      });
+    }
+
     // Prepare CSV data with individual copy details
     const csvData = copies.map(copy => {
       const title = copy.titleId as any;
       const library = copy.libraryId as any;
       const inventory = copy.inventoryId as any;
       
+      // Debug logging
+      console.log('Copy data:', {
+        copyId: copy._id,
+        titleExists: !!title,
+        libraryExists: !!library,
+        inventoryExists: !!inventory,
+        titleData: title ? { title: title.title, isbn13: title.isbn13 } : null,
+        libraryData: library ? { name: library.name, code: library.code } : null
+      });
+      
       return {
         // Book Information
-        isbn13: title.isbn13 || '',
-        isbn10: title.isbn10 || '',
-        title: title.title,
-        subtitle: title.subtitle || '',
-        authors: title.authors.join(', '),
-        categories: title.categories ? title.categories.join(', ') : '',
-        language: title.language || 'en',
-        publisher: title.publisher || '',
-        publishedYear: title.publishedYear || '',
-        description: title.description || '',
-        coverUrl: title.coverUrl || '',
+        isbn13: title?.isbn13 || '',
+        isbn10: title?.isbn10 || '',
+        title: title?.title || 'Unknown Title',
+        subtitle: title?.subtitle || '',
+        authors: title?.authors ? (Array.isArray(title.authors) ? title.authors.join(', ') : title.authors) : '',
+        categories: title?.categories ? (Array.isArray(title.categories) ? title.categories.join(', ') : title.categories) : '',
+        language: title?.language || 'en',
+        publisher: title?.publisher || '',
+        publishedYear: title?.publishedYear || '',
+        description: title?.description || '',
+        coverUrl: title?.coverUrl || '',
         
         // Library Information
-        libraryName: library.name || '',
-        libraryCode: library.code || '',
+        libraryName: library?.name || 'Unknown Library',
+        libraryCode: library?.code || 'UNK',
         
         // Individual Copy Information
-        copyId: copy._id,
+        copyId: copy._id || '',
         barcode: copy.barcode || '',
-        status: copy.status,
-        condition: copy.condition,
+        status: copy.status || 'available',
+        condition: copy.condition || 'good',
         shelfLocation: copy.shelfLocation || inventory?.shelfLocation || '',
         acquiredAt: copy.acquiredAt ? new Date(copy.acquiredAt).toISOString().split('T')[0] : '',
         
@@ -350,6 +373,11 @@ export const exportBooks = async (req: Request, res: Response) => {
         inventoryNotes: inventory?.notes || ''
       };
     });
+
+    // Debug: Log sample CSV data
+    if (csvData.length > 0) {
+      console.log('Sample CSV data:', csvData[0]);
+    }
 
     // Create CSV writer
     const csvWriter = createObjectCsvWriter({
