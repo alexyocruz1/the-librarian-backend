@@ -27,9 +27,7 @@ export const upload = multer({
 
 // Validation rules
 export const importBooksValidation = [
-  body('libraryId')
-    .isMongoId()
-    .withMessage('Valid library ID is required')
+  // No body validation needed - library info comes from CSV file
 ];
 
 // Import books from CSV
@@ -52,16 +50,7 @@ export const importBooks = async (req: Request, res: Response) => {
       });
     }
 
-    const { libraryId } = req.body;
-
-    // Check if library exists
-    const library = await Library.findById(libraryId);
-    if (!library) {
-      return res.status(404).json({
-        success: false,
-        error: 'Library not found'
-      });
-    }
+    // Library information comes from CSV file, not request body
 
     // Parse CSV file
     const csvData: CSVBookData[] = [];
@@ -167,17 +156,19 @@ export const importBooks = async (req: Request, res: Response) => {
       const copyData = csvData[i];
       
       try {
-        // Find or create library
-        let targetLibraryId = libraryId;
-        if (copyData.libraryCode) {
-          const library = await Library.findOne({ code: copyData.libraryCode });
-          if (library) {
-            targetLibraryId = (library._id as any).toString();
-          } else {
-            results.errors.push(`Row ${i + 1}: Library with code "${copyData.libraryCode}" not found`);
-            continue;
-          }
+        // Find library by code from CSV
+        if (!copyData.libraryCode) {
+          results.errors.push(`Row ${i + 1}: Library code is required`);
+          continue;
         }
+        
+        const library = await Library.findOne({ code: copyData.libraryCode });
+        if (!library) {
+          results.errors.push(`Row ${i + 1}: Library with code "${copyData.libraryCode}" not found`);
+          continue;
+        }
+        
+        const targetLibraryId = (library._id as any).toString();
 
         // Check if title already exists by ISBN
         let title = null;

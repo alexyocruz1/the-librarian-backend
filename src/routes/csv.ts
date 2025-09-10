@@ -22,7 +22,6 @@ router.get('/export', authorize('admin', 'superadmin'), exportBooks);
 // Import books from CSV (admin and super admin only)
 router.post('/import', 
   authorize('admin', 'superadmin'), 
-  authorizeLibraryAccess,
   upload.single('csvFile'), 
   importBooksValidation, 
   importBooks
