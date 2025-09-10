@@ -113,6 +113,7 @@ export const importBooks = async (req: Request, res: Response) => {
           }
 
           csvData.push({
+            // Book Information
             isbn13: row.isbn13 || undefined,
             isbn10: row.isbn10 || undefined,
             title: row.title.trim(),
@@ -124,8 +125,21 @@ export const importBooks = async (req: Request, res: Response) => {
             publishedYear: row.publishedYear ? parseInt(row.publishedYear) : undefined,
             description: row.description?.trim() || undefined,
             coverUrl: row.coverUrl?.trim() || undefined,
-            totalCopies: totalCopies,
+            
+            // Library Information
+            libraryName: row.libraryName?.trim() || undefined,
+            libraryCode: row.libraryCode?.trim() || undefined,
+            
+            // Individual Copy Information
+            copyId: row.copyId?.trim() || undefined,
+            barcode: row.barcode?.trim() || undefined,
+            status: row.status?.trim() || 'available',
+            condition: row.condition?.trim() || 'good',
             shelfLocation: row.shelfLocation?.trim() || undefined,
+            acquiredAt: row.acquiredAt?.trim() || undefined,
+            
+            // Legacy fields for backward compatibility
+            totalCopies: totalCopies,
             notes: row.notes?.trim() || undefined
           });
         })
@@ -152,32 +166,44 @@ export const importBooks = async (req: Request, res: Response) => {
     };
 
     for (let i = 0; i < csvData.length; i++) {
-      const bookData = csvData[i];
+      const copyData = csvData[i];
       
       try {
+        // Find or create library
+        let targetLibraryId = libraryId;
+        if (copyData.libraryCode) {
+          const library = await Library.findOne({ code: copyData.libraryCode });
+          if (library) {
+            targetLibraryId = library._id.toString();
+          } else {
+            results.errors.push(`Row ${i + 1}: Library with code "${copyData.libraryCode}" not found`);
+            continue;
+          }
+        }
+
         // Check if title already exists by ISBN
         let title = null;
-        if (bookData.isbn13) {
-          title = await Title.findOne({ isbn13: bookData.isbn13 });
+        if (copyData.isbn13) {
+          title = await Title.findOne({ isbn13: copyData.isbn13 });
         }
-        if (!title && bookData.isbn10) {
-          title = await Title.findOne({ isbn10: bookData.isbn10 });
+        if (!title && copyData.isbn10) {
+          title = await Title.findOne({ isbn10: copyData.isbn10 });
         }
 
         // Create title if it doesn't exist
         if (!title) {
           title = new Title({
-            isbn13: bookData.isbn13,
-            isbn10: bookData.isbn10,
-            title: bookData.title,
-            subtitle: bookData.subtitle,
-            authors: bookData.authors.split(',').map(author => author.trim()),
-            categories: bookData.categories ? bookData.categories.split(',').map(cat => cat.trim()) : [],
-            language: bookData.language,
-            publisher: bookData.publisher,
-            publishedYear: bookData.publishedYear,
-            description: bookData.description,
-            coverUrl: bookData.coverUrl
+            isbn13: copyData.isbn13,
+            isbn10: copyData.isbn10,
+            title: copyData.title,
+            subtitle: copyData.subtitle,
+            authors: copyData.authors.split(',').map(author => author.trim()),
+            categories: copyData.categories ? copyData.categories.split(',').map(cat => cat.trim()) : [],
+            language: copyData.language,
+            publisher: copyData.publisher,
+            publishedYear: copyData.publishedYear,
+            description: copyData.description,
+            coverUrl: copyData.coverUrl
           });
           await title.save();
           results.titlesCreated++;
@@ -186,54 +212,51 @@ export const importBooks = async (req: Request, res: Response) => {
         }
 
         // Check if inventory already exists for this library and title
-        let inventory = await Inventory.findOne({ libraryId, titleId: title._id });
+        let inventory = await Inventory.findOne({ libraryId: targetLibraryId, titleId: title._id });
         
         if (!inventory) {
           // Create inventory
           inventory = new Inventory({
-            libraryId,
+            libraryId: targetLibraryId,
             titleId: title._id,
-            totalCopies: bookData.totalCopies,
-            availableCopies: bookData.totalCopies,
-            shelfLocation: bookData.shelfLocation,
-            notes: bookData.notes
+            totalCopies: 0,
+            availableCopies: 0,
+            shelfLocation: copyData.shelfLocation,
+            notes: copyData.notes
           });
           await inventory.save();
           results.inventoriesCreated++;
+        }
 
-          // Create copies
-          for (let j = 0; j < bookData.totalCopies; j++) {
-            const copy = new Copy({
-              inventoryId: inventory._id,
-              libraryId,
-              titleId: title._id,
-              status: 'available',
-              condition: 'good',
-              shelfLocation: bookData.shelfLocation || inventory.shelfLocation
-            });
-            await copy.save();
-            results.copiesCreated++;
-          }
-        } else {
-          // Update existing inventory
-          inventory.totalCopies += bookData.totalCopies;
-          inventory.availableCopies += bookData.totalCopies;
-          await inventory.save();
-
-          // Create additional copies
-          for (let j = 0; j < bookData.totalCopies; j++) {
-            const copy = new Copy({
-              inventoryId: inventory._id,
-              libraryId,
-              titleId: title._id,
-              status: 'available',
-              condition: 'good',
-              shelfLocation: bookData.shelfLocation || inventory.shelfLocation
-            });
-            await copy.save();
-            results.copiesCreated++;
+        // Check if copy already exists (by barcode)
+        if (copyData.barcode) {
+          const existingCopy = await Copy.findOne({ barcode: copyData.barcode });
+          if (existingCopy) {
+            results.errors.push(`Row ${i + 1}: Copy with barcode "${copyData.barcode}" already exists`);
+            continue;
           }
         }
+
+        // Create individual copy
+        const copy = new Copy({
+          inventoryId: inventory._id,
+          libraryId: targetLibraryId,
+          titleId: title._id,
+          barcode: copyData.barcode || undefined,
+          status: copyData.status || 'available',
+          condition: copyData.condition || 'good',
+          shelfLocation: copyData.shelfLocation || inventory.shelfLocation,
+          acquiredAt: copyData.acquiredAt ? new Date(copyData.acquiredAt) : new Date()
+        });
+        await copy.save();
+        results.copiesCreated++;
+
+        // Update inventory counts
+        inventory.totalCopies += 1;
+        if (copyData.status === 'available') {
+          inventory.availableCopies += 1;
+        }
+        await inventory.save();
 
       } catch (error) {
         results.errors.push(`Row ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -276,15 +299,20 @@ export const exportBooks = async (req: Request, res: Response) => {
       });
     }
 
-    // Get all inventories for the library
-    const inventories = await Inventory.find({ libraryId })
+    // Get all copies for the library with populated data
+    const copies = await Copy.find({ libraryId })
       .populate('titleId')
-      .populate('libraryId', 'name code');
+      .populate('libraryId', 'name code')
+      .populate('inventoryId');
 
-    // Prepare CSV data
-    const csvData = inventories.map(inventory => {
-      const title = inventory.titleId as any;
+    // Prepare CSV data with individual copy details
+    const csvData = copies.map(copy => {
+      const title = copy.titleId as any;
+      const library = copy.libraryId as any;
+      const inventory = copy.inventoryId as any;
+      
       return {
+        // Book Information
         isbn13: title.isbn13 || '',
         isbn10: title.isbn10 || '',
         title: title.title,
@@ -296,10 +324,23 @@ export const exportBooks = async (req: Request, res: Response) => {
         publishedYear: title.publishedYear || '',
         description: title.description || '',
         coverUrl: title.coverUrl || '',
-        totalCopies: inventory.totalCopies,
-        availableCopies: inventory.availableCopies,
-        shelfLocation: inventory.shelfLocation || '',
-        notes: inventory.notes || ''
+        
+        // Library Information
+        libraryName: library.name || '',
+        libraryCode: library.code || '',
+        
+        // Individual Copy Information
+        copyId: copy._id,
+        barcode: copy.barcode || '',
+        status: copy.status,
+        condition: copy.condition,
+        shelfLocation: copy.shelfLocation || inventory?.shelfLocation || '',
+        acquiredAt: copy.acquiredAt ? new Date(copy.acquiredAt).toISOString().split('T')[0] : '',
+        
+        // Inventory Summary (for reference)
+        inventoryTotalCopies: inventory?.totalCopies || 0,
+        inventoryAvailableCopies: inventory?.availableCopies || 0,
+        inventoryNotes: inventory?.notes || ''
       };
     });
 
@@ -307,6 +348,7 @@ export const exportBooks = async (req: Request, res: Response) => {
     const csvWriter = createObjectCsvWriter({
       path: 'temp-export.csv',
       header: [
+        // Book Information
         { id: 'isbn13', title: 'ISBN13' },
         { id: 'isbn10', title: 'ISBN10' },
         { id: 'title', title: 'Title' },
@@ -318,10 +360,23 @@ export const exportBooks = async (req: Request, res: Response) => {
         { id: 'publishedYear', title: 'Published Year' },
         { id: 'description', title: 'Description' },
         { id: 'coverUrl', title: 'Cover URL' },
-        { id: 'totalCopies', title: 'Total Copies' },
-        { id: 'availableCopies', title: 'Available Copies' },
+        
+        // Library Information
+        { id: 'libraryName', title: 'Library Name' },
+        { id: 'libraryCode', title: 'Library Code' },
+        
+        // Individual Copy Information
+        { id: 'copyId', title: 'Copy ID' },
+        { id: 'barcode', title: 'Barcode' },
+        { id: 'status', title: 'Status' },
+        { id: 'condition', title: 'Condition' },
         { id: 'shelfLocation', title: 'Shelf Location' },
-        { id: 'notes', title: 'Notes' }
+        { id: 'acquiredAt', title: 'Acquired Date' },
+        
+        // Inventory Summary (for reference)
+        { id: 'inventoryTotalCopies', title: 'Inventory Total Copies' },
+        { id: 'inventoryAvailableCopies', title: 'Inventory Available Copies' },
+        { id: 'inventoryNotes', title: 'Inventory Notes' }
       ]
     });
 
@@ -330,7 +385,7 @@ export const exportBooks = async (req: Request, res: Response) => {
 
     // Set response headers for file download
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="${library.code}-books-export.csv"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${library.code}-copies-export.csv"`);
 
     // Send the file
     const fs = require('fs');
@@ -359,6 +414,7 @@ export const getCSVTemplate = async (req: Request, res: Response) => {
     // Create sample data for template
     const templateData = [
       {
+        // Book Information
         isbn13: '9781234567890',
         isbn10: '1234567890',
         title: 'Sample Book Title',
@@ -370,9 +426,23 @@ export const getCSVTemplate = async (req: Request, res: Response) => {
         publishedYear: '2023',
         description: 'This is a sample book description.',
         coverUrl: 'https://example.com/cover.jpg',
-        totalCopies: '3',
+        
+        // Library Information
+        libraryName: 'Main Library',
+        libraryCode: 'ML-001',
+        
+        // Individual Copy Information
+        copyId: 'copy_id_1',
+        barcode: 'SAMPLE-001',
+        status: 'available',
+        condition: 'good',
         shelfLocation: 'Aisle 2, Rack 4',
-        notes: 'Sample notes about the book'
+        acquiredAt: '2023-01-15',
+        
+        // Inventory Summary (for reference)
+        inventoryTotalCopies: '3',
+        inventoryAvailableCopies: '2',
+        inventoryNotes: 'Sample notes about the book'
       }
     ];
 
@@ -380,6 +450,7 @@ export const getCSVTemplate = async (req: Request, res: Response) => {
     const csvWriter = createObjectCsvWriter({
       path: 'temp-template.csv',
       header: [
+        // Book Information
         { id: 'isbn13', title: 'ISBN13' },
         { id: 'isbn10', title: 'ISBN10' },
         { id: 'title', title: 'Title' },
@@ -391,9 +462,23 @@ export const getCSVTemplate = async (req: Request, res: Response) => {
         { id: 'publishedYear', title: 'Published Year' },
         { id: 'description', title: 'Description' },
         { id: 'coverUrl', title: 'Cover URL' },
-        { id: 'totalCopies', title: 'Total Copies' },
+        
+        // Library Information
+        { id: 'libraryName', title: 'Library Name' },
+        { id: 'libraryCode', title: 'Library Code' },
+        
+        // Individual Copy Information
+        { id: 'copyId', title: 'Copy ID' },
+        { id: 'barcode', title: 'Barcode' },
+        { id: 'status', title: 'Status' },
+        { id: 'condition', title: 'Condition' },
         { id: 'shelfLocation', title: 'Shelf Location' },
-        { id: 'notes', title: 'Notes' }
+        { id: 'acquiredAt', title: 'Acquired Date' },
+        
+        // Inventory Summary (for reference)
+        { id: 'inventoryTotalCopies', title: 'Inventory Total Copies' },
+        { id: 'inventoryAvailableCopies', title: 'Inventory Available Copies' },
+        { id: 'inventoryNotes', title: 'Inventory Notes' }
       ]
     });
 
@@ -402,7 +487,7 @@ export const getCSVTemplate = async (req: Request, res: Response) => {
 
     // Set response headers for file download
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="books-import-template.csv"');
+    res.setHeader('Content-Disposition', 'attachment; filename="copies-import-template.csv"');
 
     // Send the file
     const fs = require('fs');
