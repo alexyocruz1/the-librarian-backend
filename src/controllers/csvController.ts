@@ -10,6 +10,37 @@ import { Copy } from '@/models/Copy';
 import { Library } from '@/models/Library';
 import { CSVBookData } from '@/types';
 
+// Helper function to parse various date formats
+const parseDate = (dateString: string): Date => {
+  if (!dateString) return new Date();
+  
+  // Handle DD/MM/YY format (e.g., "15/01/23", "10/01/24")
+  if (dateString.includes('/')) {
+    const parts = dateString.split('/');
+    if (parts.length === 3) {
+      const day = parseInt(parts[0]);
+      const month = parseInt(parts[1]) - 1; // JavaScript months are 0-based
+      let year = parseInt(parts[2]);
+      
+      // Handle 2-digit years
+      if (year < 100) {
+        year += year < 50 ? 2000 : 1900;
+      }
+      
+      return new Date(year, month, day);
+    }
+  }
+  
+  // Handle YYYY-MM-DD format
+  if (dateString.includes('-')) {
+    return new Date(dateString);
+  }
+  
+  // Fallback to default Date parsing
+  const parsed = new Date(dateString);
+  return isNaN(parsed.getTime()) ? new Date() : parsed;
+};
+
 // Configure multer for CSV upload
 export const upload = multer({
   storage: multer.memoryStorage(),
@@ -283,29 +314,38 @@ export const importBooks = async (req: Request, res: Response) => {
           if (barcode) {
             const existingCopy = await Copy.findOne({ barcode: barcode });
             if (existingCopy) {
-              results.errors.push(`Row ${i + 1}, Copy ${copyIndex + 1}: Copy with barcode "${barcode}" already exists`);
+              results.errors.push(`Row ${i + 1}, Copy ${copyIndex + 1}: Copy with barcode "${barcode}" already exists - skipping`);
               continue;
             }
           }
 
-          // Create individual copy
-          const copy = new Copy({
-            inventoryId: inventory._id,
-            libraryId: targetLibraryId,
-            titleId: title._id,
-            barcode: barcode || undefined,
-            status: copyData.status || 'available',
-            condition: copyData.condition || 'good',
-            shelfLocation: copyData.shelfLocation || inventory.shelfLocation,
-            acquiredAt: copyData.acquiredAt ? new Date(copyData.acquiredAt) : new Date()
-          });
-          await copy.save();
-          results.copiesCreated++;
+          try {
+            // Create individual copy
+            const copy = new Copy({
+              inventoryId: inventory._id,
+              libraryId: targetLibraryId,
+              titleId: title._id,
+              barcode: barcode || undefined,
+              status: copyData.status || 'available',
+              condition: copyData.condition || 'good',
+              shelfLocation: copyData.shelfLocation || inventory.shelfLocation,
+              acquiredAt: copyData.acquiredAt ? parseDate(copyData.acquiredAt) : new Date()
+            });
+            await copy.save();
+            results.copiesCreated++;
 
-          // Update inventory counts
-          inventory.totalCopies += 1;
-          if (copyData.status === 'available') {
-            inventory.availableCopies += 1;
+            // Update inventory counts
+            inventory.totalCopies += 1;
+            if (copyData.status === 'available') {
+              inventory.availableCopies += 1;
+            }
+          } catch (error: any) {
+            if (error.code === 11000) {
+              // Duplicate key error
+              results.errors.push(`Row ${i + 1}, Copy ${copyIndex + 1}: Copy with barcode "${barcode}" already exists - skipping`);
+            } else {
+              results.errors.push(`Row ${i + 1}, Copy ${copyIndex + 1}: ${error.message}`);
+            }
           }
         }
         
