@@ -283,27 +283,34 @@ export const exportBooks = async (req: Request, res: Response) => {
   try {
     const { libraryId } = req.query;
 
-    if (!libraryId) {
-      return res.status(400).json({
-        success: false,
-        error: 'Library ID is required'
-      });
-    }
+    let copies;
+    let libraryName = 'All Libraries';
+    let libraryCode = 'ALL';
 
-    // Check if library exists
-    const library = await Library.findById(libraryId);
-    if (!library) {
-      return res.status(404).json({
-        success: false,
-        error: 'Library not found'
-      });
-    }
+    if (libraryId) {
+      // Check if library exists
+      const library = await Library.findById(libraryId);
+      if (!library) {
+        return res.status(404).json({
+          success: false,
+          error: 'Library not found'
+        });
+      }
+      libraryName = library.name;
+      libraryCode = library.code;
 
-    // Get all copies for the library with populated data
-    const copies = await Copy.find({ libraryId })
-      .populate('titleId')
-      .populate('libraryId', 'name code')
-      .populate('inventoryId');
+      // Get all copies for the specific library
+      copies = await Copy.find({ libraryId })
+        .populate('titleId')
+        .populate('libraryId', 'name code')
+        .populate('inventoryId');
+    } else {
+      // Get all copies from all libraries
+      copies = await Copy.find({})
+        .populate('titleId')
+        .populate('libraryId', 'name code')
+        .populate('inventoryId');
+    }
 
     // Prepare CSV data with individual copy details
     const csvData = copies.map(copy => {
@@ -385,7 +392,7 @@ export const exportBooks = async (req: Request, res: Response) => {
 
     // Set response headers for file download
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="${library.code}-copies-export.csv"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${libraryCode}-copies-export.csv"`);
 
     // Send the file
     const fs = require('fs');
