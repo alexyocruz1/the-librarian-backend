@@ -65,12 +65,12 @@ export const importBooksValidation = [
 export const importBooks = async (req: Request, res: Response) => {
   try {
     // Check validation errors
-    const validationErrors = validationResult(req);
-    if (!validationErrors.isEmpty()) {
+    const reqValidationErrors = validationResult(req);
+    if (!reqValidationErrors.isEmpty()) {
       return res.status(400).json({
         success: false,
         error: 'Validation failed',
-        details: validationErrors.array()
+        details: reqValidationErrors.array()
       });
     }
 
@@ -224,7 +224,62 @@ export const importBooks = async (req: Request, res: Response) => {
       });
     }
 
-    // Process the data
+    // ALL-OR-NOTHING VALIDATION: First, validate all rows without creating anything
+    const validationErrors: string[] = [];
+    const libraries = new Map<string, any>();
+    
+    for (let i = 0; i < csvData.length; i++) {
+      const copyData = csvData[i];
+      
+      // Validate library code
+      if (!copyData.libraryCode) {
+        validationErrors.push(`Row ${i + 1}: Library code is required`);
+        continue;
+      }
+      
+      // Check if library exists (cache to avoid repeated queries)
+      if (!libraries.has(copyData.libraryCode)) {
+        const library = await Library.findOne({ code: copyData.libraryCode });
+        if (!library) {
+          validationErrors.push(`Row ${i + 1}: Library with code "${copyData.libraryCode}" not found`);
+          continue;
+        }
+        libraries.set(copyData.libraryCode, library);
+      }
+      
+      const library = libraries.get(copyData.libraryCode);
+      const targetLibraryId = (library._id as any).toString();
+      
+      // Check for duplicate barcodes across all rows
+      const copiesToCreate = copyData.totalCopies || 1;
+      for (let copyIndex = 0; copyIndex < copiesToCreate; copyIndex++) {
+        let barcode = copyData.barcode;
+        
+        // If multiple copies and custom barcode provided, append sequence number
+        if (copiesToCreate > 1 && copyData.barcode && copyData.barcode.trim()) {
+          barcode = `${copyData.barcode}-${String(copyIndex + 1).padStart(3, '0')}`;
+        }
+        
+        // Check if copy already exists (by barcode) - only if barcode is not empty
+        if (barcode && barcode.trim()) {
+          const existingCopy = await Copy.findOne({ barcode: barcode });
+          if (existingCopy) {
+            validationErrors.push(`Row ${i + 1}, Copy ${copyIndex + 1}: Copy with barcode "${barcode}" already exists`);
+          }
+        }
+      }
+    }
+    
+    // If there are ANY validation errors, reject the entire import
+    if (validationErrors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'CSV validation failed - all-or-nothing import',
+        details: validationErrors
+      });
+    }
+    
+    // ALL VALIDATION PASSED - Now create everything
     const results = {
       titlesCreated: 0,
       titlesSkipped: 0,
@@ -237,18 +292,7 @@ export const importBooks = async (req: Request, res: Response) => {
       const copyData = csvData[i];
       
       try {
-        // Find library by code from CSV
-        if (!copyData.libraryCode) {
-          results.errors.push(`Row ${i + 1}: Library code is required`);
-          continue;
-        }
-        
-        const library = await Library.findOne({ code: copyData.libraryCode });
-        if (!library) {
-          results.errors.push(`Row ${i + 1}: Library with code "${copyData.libraryCode}" not found`);
-          continue;
-        }
-        
+        const library = libraries.get(copyData.libraryCode!);
         const targetLibraryId = (library._id as any).toString();
 
         // Check if title already exists by ISBN
@@ -309,49 +353,32 @@ export const importBooks = async (req: Request, res: Response) => {
           if (copiesToCreate > 1 && copyData.barcode && copyData.barcode.trim()) {
             barcode = `${copyData.barcode}-${String(copyIndex + 1).padStart(3, '0')}`;
           }
-          
-          // Check if copy already exists (by barcode) - only if barcode is not empty
-          if (barcode && barcode.trim()) {
-            const existingCopy = await Copy.findOne({ barcode: barcode });
-            if (existingCopy) {
-              results.errors.push(`Row ${i + 1}, Copy ${copyIndex + 1}: Copy with barcode "${barcode}" already exists - skipping`);
-              continue;
-            }
-          }
 
-          try {
-            // Create individual copy
-            const copy = new Copy({
-              inventoryId: inventory._id,
-              libraryId: targetLibraryId,
-              titleId: title._id,
-              barcode: (barcode && barcode.trim()) ? barcode : undefined,
-              status: copyData.status || 'available',
-              condition: copyData.condition || 'good',
-              shelfLocation: copyData.shelfLocation || inventory.shelfLocation,
-              acquiredAt: copyData.acquiredAt ? parseDate(copyData.acquiredAt) : new Date()
-            });
-            await copy.save();
-            results.copiesCreated++;
+          // Create individual copy
+          const copy = new Copy({
+            inventoryId: inventory._id,
+            libraryId: targetLibraryId,
+            titleId: title._id,
+            barcode: (barcode && barcode.trim()) ? barcode : undefined,
+            status: copyData.status || 'available',
+            condition: copyData.condition || 'good',
+            shelfLocation: copyData.shelfLocation || inventory.shelfLocation,
+            acquiredAt: copyData.acquiredAt ? parseDate(copyData.acquiredAt) : new Date()
+          });
+          await copy.save();
+          results.copiesCreated++;
 
-            // Update inventory counts
-            inventory.totalCopies += 1;
-            if (copyData.status === 'available') {
-              inventory.availableCopies += 1;
-            }
-          } catch (error: any) {
-            if (error.code === 11000) {
-              // Duplicate key error
-              results.errors.push(`Row ${i + 1}, Copy ${copyIndex + 1}: Copy with barcode "${barcode}" already exists - skipping`);
-            } else {
-              results.errors.push(`Row ${i + 1}, Copy ${copyIndex + 1}: ${error.message}`);
-            }
+          // Update inventory counts
+          inventory.totalCopies += 1;
+          if (copyData.status === 'available') {
+            inventory.availableCopies += 1;
           }
         }
         
         await inventory.save();
 
       } catch (error) {
+        // This should never happen since we validated everything first
         results.errors.push(`Row ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
