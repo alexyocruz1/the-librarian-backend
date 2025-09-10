@@ -127,11 +127,9 @@ export const importBooks = async (req: Request, res: Response) => {
             coverUrl: row.coverUrl?.trim() || undefined,
             
             // Library Information
-            libraryName: row.libraryName?.trim() || undefined,
             libraryCode: row.libraryCode?.trim() || undefined,
             
             // Individual Copy Information
-            copyId: row.copyId?.trim() || undefined,
             barcode: row.barcode?.trim() || undefined,
             status: row.status?.trim() || 'available',
             condition: row.condition?.trim() || 'good',
@@ -228,34 +226,48 @@ export const importBooks = async (req: Request, res: Response) => {
           results.inventoriesCreated++;
         }
 
-        // Check if copy already exists (by barcode)
-        if (copyData.barcode) {
-          const existingCopy = await Copy.findOne({ barcode: copyData.barcode });
-          if (existingCopy) {
-            results.errors.push(`Row ${i + 1}: Copy with barcode "${copyData.barcode}" already exists`);
-            continue;
+        // Determine how many copies to create
+        const copiesToCreate = copyData.totalCopies || 1;
+        
+        // Create multiple copies if totalCopies > 1
+        for (let copyIndex = 0; copyIndex < copiesToCreate; copyIndex++) {
+          let barcode = copyData.barcode;
+          
+          // If multiple copies and custom barcode provided, append sequence number
+          if (copiesToCreate > 1 && copyData.barcode) {
+            barcode = `${copyData.barcode}-${String(copyIndex + 1).padStart(3, '0')}`;
+          }
+          
+          // Check if copy already exists (by barcode)
+          if (barcode) {
+            const existingCopy = await Copy.findOne({ barcode: barcode });
+            if (existingCopy) {
+              results.errors.push(`Row ${i + 1}, Copy ${copyIndex + 1}: Copy with barcode "${barcode}" already exists`);
+              continue;
+            }
+          }
+
+          // Create individual copy
+          const copy = new Copy({
+            inventoryId: inventory._id,
+            libraryId: targetLibraryId,
+            titleId: title._id,
+            barcode: barcode || undefined,
+            status: copyData.status || 'available',
+            condition: copyData.condition || 'good',
+            shelfLocation: copyData.shelfLocation || inventory.shelfLocation,
+            acquiredAt: copyData.acquiredAt ? new Date(copyData.acquiredAt) : new Date()
+          });
+          await copy.save();
+          results.copiesCreated++;
+
+          // Update inventory counts
+          inventory.totalCopies += 1;
+          if (copyData.status === 'available') {
+            inventory.availableCopies += 1;
           }
         }
-
-        // Create individual copy
-        const copy = new Copy({
-          inventoryId: inventory._id,
-          libraryId: targetLibraryId,
-          titleId: title._id,
-          barcode: copyData.barcode || undefined,
-          status: copyData.status || 'available',
-          condition: copyData.condition || 'good',
-          shelfLocation: copyData.shelfLocation || inventory.shelfLocation,
-          acquiredAt: copyData.acquiredAt ? new Date(copyData.acquiredAt) : new Date()
-        });
-        await copy.save();
-        results.copiesCreated++;
-
-        // Update inventory counts
-        inventory.totalCopies += 1;
-        if (copyData.status === 'available') {
-          inventory.availableCopies += 1;
-        }
+        
         await inventory.save();
 
       } catch (error) {
@@ -333,16 +345,15 @@ export const exportBooks = async (req: Request, res: Response) => {
         coverUrl: title?.coverUrl || '',
         
         // Library Information
-        libraryName: library?.name || 'Unknown Library',
         libraryCode: library?.code || 'UNK',
         
         // Individual Copy Information
-        copyId: copy._id ? copy._id.toString() : '',
         barcode: copy.barcode || '',
         status: copy.status || 'available',
         condition: copy.condition || 'good',
         shelfLocation: copy.shelfLocation || inventory?.shelfLocation || '',
         acquiredAt: copy.acquiredAt ? new Date(copy.acquiredAt).toISOString().split('T')[0] : '',
+        totalCopies: 1, // Each row represents one copy
         
         // Inventory Summary (for reference)
         inventoryTotalCopies: inventory?.totalCopies || 0,
@@ -358,8 +369,8 @@ export const exportBooks = async (req: Request, res: Response) => {
     // Create CSV manually to test
     const headers = [
       'ISBN13', 'ISBN10', 'Title', 'Subtitle', 'Authors', 'Categories', 'Language', 'Publisher', 
-      'Published Year', 'Description', 'Cover URL', 'Library Name', 'Library Code', 'Copy ID', 
-      'Barcode', 'Status', 'Condition', 'Shelf Location', 'Acquired Date', 
+      'Published Year', 'Description', 'Cover URL', 'Library Code', 
+      'Barcode', 'Status', 'Condition', 'Shelf Location', 'Acquired Date', 'Total Copies',
       'Inventory Total Copies', 'Inventory Available Copies', 'Inventory Notes'
     ];
     
@@ -378,14 +389,13 @@ export const exportBooks = async (req: Request, res: Response) => {
         `"${row.publishedYear || ''}"`,
         `"${row.description || ''}"`,
         `"${row.coverUrl || ''}"`,
-        `"${row.libraryName || ''}"`,
         `"${row.libraryCode || ''}"`,
-        `"${row.copyId || ''}"`,
         `"${row.barcode || ''}"`,
         `"${row.status || ''}"`,
         `"${row.condition || ''}"`,
         `"${row.shelfLocation || ''}"`,
         `"${row.acquiredAt || ''}"`,
+        `"${row.totalCopies || ''}"`,
         `"${row.inventoryTotalCopies || ''}"`,
         `"${row.inventoryAvailableCopies || ''}"`,
         `"${row.inventoryNotes || ''}"`
@@ -452,21 +462,50 @@ export const getCSVTemplate = async (req: Request, res: Response) => {
         coverUrl: 'https://example.com/cover.jpg',
         
         // Library Information
-        libraryName: 'Main Library',
         libraryCode: 'ML-001',
         
         // Individual Copy Information
-        copyId: 'copy_id_1',
-        barcode: 'SAMPLE-001',
+        barcode: 'CUSTOM-001',
         status: 'available',
         condition: 'good',
         shelfLocation: 'Aisle 2, Rack 4',
         acquiredAt: '2023-01-15',
+        totalCopies: '3',
         
         // Inventory Summary (for reference)
         inventoryTotalCopies: '3',
         inventoryAvailableCopies: '2',
         inventoryNotes: 'Sample notes about the book'
+      },
+      {
+        // Book Information
+        isbn13: '9780987654321',
+        isbn10: '0987654321',
+        title: 'Another Sample Book',
+        subtitle: 'With Auto-Generated Barcodes',
+        authors: 'Jane Smith',
+        categories: 'Science, Technology',
+        language: 'en',
+        publisher: 'Tech Publisher',
+        publishedYear: '2024',
+        description: 'Another sample book for testing.',
+        coverUrl: 'https://example.com/cover2.jpg',
+        
+        // Library Information
+        libraryCode: 'ML-001',
+        
+        // Individual Copy Information (empty barcode for auto-generation)
+        barcode: '',
+        status: 'available',
+        condition: 'excellent',
+        shelfLocation: 'Aisle 1, Rack 2',
+        acquiredAt: '2024-01-10',
+        totalCopies: '2',
+        
+        // Inventory Summary (for reference)
+        inventoryTotalCopies: '2',
+        inventoryAvailableCopies: '2',
+        inventoryNotes: 'New acquisition'
       }
     ];
 
@@ -488,16 +527,15 @@ export const getCSVTemplate = async (req: Request, res: Response) => {
         { id: 'coverUrl', title: 'Cover URL' },
         
         // Library Information
-        { id: 'libraryName', title: 'Library Name' },
         { id: 'libraryCode', title: 'Library Code' },
         
         // Individual Copy Information
-        { id: 'copyId', title: 'Copy ID' },
         { id: 'barcode', title: 'Barcode' },
         { id: 'status', title: 'Status' },
         { id: 'condition', title: 'Condition' },
         { id: 'shelfLocation', title: 'Shelf Location' },
         { id: 'acquiredAt', title: 'Acquired Date' },
+        { id: 'totalCopies', title: 'Total Copies' },
         
         // Inventory Summary (for reference)
         { id: 'inventoryTotalCopies', title: 'Inventory Total Copies' },

@@ -187,11 +187,9 @@ export interface CSVBookData {
   coverUrl?: string;
   
   // Library Information
-  libraryName?: string;
   libraryCode?: string;
   
   // Individual Copy Information
-  copyId?: string;
   barcode?: string;
   status?: string;
   condition?: string;
