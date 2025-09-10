@@ -62,33 +62,65 @@ export const importBooks = async (req: Request, res: Response) => {
       stream
         .pipe(csv())
         .on('data', (row) => {
+          // Normalize field names (handle case variations)
+          const normalizedRow = {
+            isbn13: row.ISBN13 || row.isbn13,
+            isbn10: row.ISBN10 || row.isbn10,
+            title: row.Title || row.title,
+            subtitle: row.Subtitle || row.subtitle,
+            authors: row.Authors || row.authors,
+            categories: row.Categories || row.categories,
+            language: row.Language || row.language,
+            publisher: row.Publisher || row.publisher,
+            publishedYear: row['Published Year'] || row.publishedYear,
+            description: row.Description || row.description,
+            coverUrl: row['Cover URL'] || row.coverUrl,
+            libraryCode: row['Library Code'] || row.libraryCode,
+            barcode: row.Barcode || row.barcode,
+            status: row.Status || row.status,
+            condition: row.Condition || row.condition,
+            shelfLocation: row['Shelf Location'] || row.shelfLocation,
+            acquiredAt: row['Acquired Date'] || row.acquiredAt,
+            totalCopies: row['Total Copies'] || row.totalCopies,
+            inventoryNotes: row['Inventory Notes'] || row.inventoryNotes
+          };
+          
           // Validate required fields
-          if (!row.title || !row.authors || !row.totalCopies) {
+          if (!normalizedRow.title || !normalizedRow.authors || !normalizedRow.totalCopies) {
             csvErrors.push(`Row ${csvData.length + 1}: Missing required fields (title, authors, totalCopies)`);
             return;
           }
 
           // Validate ISBN formats
-          if (row.isbn13 && !/^\d{13}$/.test(row.isbn13)) {
-            csvErrors.push(`Row ${csvData.length + 1}: Invalid ISBN13 format`);
-            return;
+          if (normalizedRow.isbn13) {
+            // Handle scientific notation (e.g., 9.78123E+12)
+            let isbn13 = normalizedRow.isbn13;
+            if (isbn13.includes('E+') || isbn13.includes('e+')) {
+              isbn13 = parseFloat(isbn13).toFixed(0);
+            }
+            if (!/^\d{13}$/.test(isbn13)) {
+              csvErrors.push(`Row ${csvData.length + 1}: Invalid ISBN13 format`);
+              return;
+            }
+            // Update the normalized row with the corrected ISBN13
+            normalizedRow.isbn13 = isbn13;
           }
 
-          if (row.isbn10 && !/^\d{10}$/.test(row.isbn10)) {
+          if (normalizedRow.isbn10 && !/^\d{10}$/.test(normalizedRow.isbn10)) {
             csvErrors.push(`Row ${csvData.length + 1}: Invalid ISBN10 format`);
             return;
           }
 
           // Validate totalCopies
-          const totalCopies = parseInt(row.totalCopies);
+          const totalCopies = parseInt(normalizedRow.totalCopies);
           if (isNaN(totalCopies) || totalCopies < 1) {
             csvErrors.push(`Row ${csvData.length + 1}: Invalid totalCopies value`);
             return;
           }
 
           // Validate publishedYear
-          if (row.publishedYear) {
-            const year = parseInt(row.publishedYear);
+          if (normalizedRow.publishedYear) {
+            const year = parseInt(normalizedRow.publishedYear);
             if (isNaN(year) || year < 1000 || year > new Date().getFullYear() + 1) {
               csvErrors.push(`Row ${csvData.length + 1}: Invalid publishedYear value`);
               return;
@@ -96,38 +128,56 @@ export const importBooks = async (req: Request, res: Response) => {
           }
 
           // Validate coverUrl
-          if (row.coverUrl && !/^https?:\/\/.+/.test(row.coverUrl)) {
+          if (normalizedRow.coverUrl && !/^https?:\/\/.+/.test(normalizedRow.coverUrl)) {
             csvErrors.push(`Row ${csvData.length + 1}: Invalid coverUrl format`);
+            return;
+          }
+
+          // Validate status
+          if (normalizedRow.status && !['available', 'borrowed', 'reserved', 'lost', 'maintenance'].includes(normalizedRow.status)) {
+            csvErrors.push(`Row ${csvData.length + 1}: Invalid status value`);
+            return;
+          }
+
+          // Validate condition
+          if (normalizedRow.condition && !['new', 'good', 'used', 'worn', 'damaged'].includes(normalizedRow.condition)) {
+            csvErrors.push(`Row ${csvData.length + 1}: Invalid condition value`);
+            return;
+          }
+
+          // Validate libraryCode
+          if (!normalizedRow.libraryCode) {
+            csvErrors.push(`Row ${csvData.length + 1}: Library code is required`);
             return;
           }
 
           csvData.push({
             // Book Information
-            isbn13: row.isbn13 || undefined,
-            isbn10: row.isbn10 || undefined,
-            title: row.title.trim(),
-            subtitle: row.subtitle?.trim() || undefined,
-            authors: row.authors.trim(),
-            categories: row.categories?.trim() || undefined,
-            language: row.language?.trim() || 'en',
-            publisher: row.publisher?.trim() || undefined,
-            publishedYear: row.publishedYear ? parseInt(row.publishedYear) : undefined,
-            description: row.description?.trim() || undefined,
-            coverUrl: row.coverUrl?.trim() || undefined,
+            isbn13: normalizedRow.isbn13 || undefined,
+            isbn10: normalizedRow.isbn10 || undefined,
+            title: normalizedRow.title.trim(),
+            subtitle: normalizedRow.subtitle?.trim() || undefined,
+            authors: normalizedRow.authors.trim(),
+            categories: normalizedRow.categories?.trim() || undefined,
+            language: normalizedRow.language?.trim() || 'en',
+            publisher: normalizedRow.publisher?.trim() || undefined,
+            publishedYear: normalizedRow.publishedYear ? parseInt(normalizedRow.publishedYear) : undefined,
+            description: normalizedRow.description?.trim() || undefined,
+            coverUrl: normalizedRow.coverUrl?.trim() || undefined,
             
             // Library Information
-            libraryCode: row.libraryCode?.trim() || undefined,
+            libraryCode: normalizedRow.libraryCode?.trim() || undefined,
             
             // Individual Copy Information
-            barcode: row.barcode?.trim() || undefined,
-            status: row.status?.trim() || 'available',
-            condition: row.condition?.trim() || 'good',
-            shelfLocation: row.shelfLocation?.trim() || undefined,
-            acquiredAt: row.acquiredAt?.trim() || undefined,
+            barcode: normalizedRow.barcode?.trim() || undefined,
+            status: normalizedRow.status?.trim() || 'available',
+            condition: normalizedRow.condition?.trim() || 'good',
+            shelfLocation: normalizedRow.shelfLocation?.trim() || undefined,
+            acquiredAt: normalizedRow.acquiredAt?.trim() || undefined,
             
             // Legacy fields for backward compatibility
             totalCopies: totalCopies,
-            notes: row.notes?.trim() || undefined
+            notes: normalizedRow.inventoryNotes?.trim() || undefined
           });
         })
         .on('end', resolve)
