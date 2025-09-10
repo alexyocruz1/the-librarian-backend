@@ -351,51 +351,68 @@ export const exportBooks = async (req: Request, res: Response) => {
       };
     });
 
-    // Create CSV writer
-    const csvWriter = createObjectCsvWriter({
-      path: 'temp-export.csv',
-      header: [
-        // Book Information
-        { id: 'isbn13', title: 'ISBN13' },
-        { id: 'isbn10', title: 'ISBN10' },
-        { id: 'title', title: 'Title' },
-        { id: 'subtitle', title: 'Subtitle' },
-        { id: 'authors', title: 'Authors' },
-        { id: 'categories', title: 'Categories' },
-        { id: 'language', title: 'Language' },
-        { id: 'publisher', title: 'Publisher' },
-        { id: 'publishedYear', title: 'Published Year' },
-        { id: 'description', title: 'Description' },
-        { id: 'coverUrl', title: 'Cover URL' },
-        
-        // Library Information
-        { id: 'libraryName', title: 'Library Name' },
-        { id: 'libraryCode', title: 'Library Code' },
-        
-        // Individual Copy Information
-        { id: 'copyId', title: 'Copy ID' },
-        { id: 'barcode', title: 'Barcode' },
-        { id: 'status', title: 'Status' },
-        { id: 'condition', title: 'Condition' },
-        { id: 'shelfLocation', title: 'Shelf Location' },
-        { id: 'acquiredAt', title: 'Acquired Date' },
-        
-        // Inventory Summary (for reference)
-        { id: 'inventoryTotalCopies', title: 'Inventory Total Copies' },
-        { id: 'inventoryAvailableCopies', title: 'Inventory Available Copies' },
-        { id: 'inventoryNotes', title: 'Inventory Notes' }
-      ]
-    });
+    // Debug: Log CSV data before writing
+    console.log('CSV Data to write:', JSON.stringify(csvData[0], null, 2));
+    console.log('Number of records:', csvData.length);
 
-    // Write CSV file
-    await csvWriter.writeRecords(csvData);
+    // Create CSV manually to test
+    const headers = [
+      'ISBN13', 'ISBN10', 'Title', 'Subtitle', 'Authors', 'Categories', 'Language', 'Publisher', 
+      'Published Year', 'Description', 'Cover URL', 'Library Name', 'Library Code', 'Copy ID', 
+      'Barcode', 'Status', 'Condition', 'Shelf Location', 'Acquired Date', 
+      'Inventory Total Copies', 'Inventory Available Copies', 'Inventory Notes'
+    ];
+    
+    const csvRows = [headers.join(',')];
+    
+    csvData.forEach(row => {
+      const csvRow = [
+        `"${row.isbn13 || ''}"`,
+        `"${row.isbn10 || ''}"`,
+        `"${row.title || ''}"`,
+        `"${row.subtitle || ''}"`,
+        `"${row.authors || ''}"`,
+        `"${row.categories || ''}"`,
+        `"${row.language || ''}"`,
+        `"${row.publisher || ''}"`,
+        `"${row.publishedYear || ''}"`,
+        `"${row.description || ''}"`,
+        `"${row.coverUrl || ''}"`,
+        `"${row.libraryName || ''}"`,
+        `"${row.libraryCode || ''}"`,
+        `"${row.copyId || ''}"`,
+        `"${row.barcode || ''}"`,
+        `"${row.status || ''}"`,
+        `"${row.condition || ''}"`,
+        `"${row.shelfLocation || ''}"`,
+        `"${row.acquiredAt || ''}"`,
+        `"${row.inventoryTotalCopies || ''}"`,
+        `"${row.inventoryAvailableCopies || ''}"`,
+        `"${row.inventoryNotes || ''}"`
+      ];
+      csvRows.push(csvRow.join(','));
+    });
+    
+    const csvContent = csvRows.join('\n');
+    console.log('Manual CSV content (first 500 chars):', csvContent.substring(0, 500));
+    
+    // Write CSV file manually
+    const fs = require('fs');
+    fs.writeFileSync('temp-export.csv', csvContent, 'utf8');
+
+    // Debug: Check if file was created and read its content
+    if (fs.existsSync('temp-export.csv')) {
+      const fileContent = fs.readFileSync('temp-export.csv', 'utf8');
+      console.log('CSV file content (first 500 chars):', fileContent.substring(0, 500));
+    } else {
+      console.log('CSV file was not created!');
+    }
 
     // Set response headers for file download
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="${libraryCode}-copies-export.csv"`);
 
     // Send the file
-    const fs = require('fs');
     const fileStream = fs.createReadStream('temp-export.csv');
     fileStream.pipe(res);
 
