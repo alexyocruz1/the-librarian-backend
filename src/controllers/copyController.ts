@@ -267,8 +267,16 @@ export const updateCopy = async (req: Request, res: Response) => {
     Object.keys(req.body).forEach(key => {
       if (allowedUpdates.includes(key)) {
         if (key === 'acquiredAt' && req.body[key]) {
-          // Convert acquiredAt string to Date object
-          updates[key] = new Date(req.body[key]);
+          // Convert acquiredAt string to Date object, preserving the local date
+          const dateStr = req.body[key];
+          // If it's just a date string (YYYY-MM-DD), treat it as local date
+          if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            // Create date in local timezone to avoid timezone conversion issues
+            const [year, month, day] = dateStr.split('-').map(Number);
+            updates[key] = new Date(year, month - 1, day);
+          } else {
+            updates[key] = new Date(dateStr);
+          }
           console.log(`Converting acquiredAt: "${req.body[key]}" -> Date object:`, updates[key]);
         } else {
           updates[key] = req.body[key];
