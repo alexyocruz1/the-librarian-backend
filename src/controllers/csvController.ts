@@ -312,34 +312,11 @@ export const exportBooks = async (req: Request, res: Response) => {
         .populate('inventoryId');
     }
 
-    // Debug: Log the number of copies found
-    console.log(`Found ${copies.length} copies to export`);
-    if (copies.length > 0) {
-      console.log('Sample copy structure:', {
-        _id: copies[0]._id,
-        titleId: copies[0].titleId,
-        libraryId: copies[0].libraryId,
-        inventoryId: copies[0].inventoryId,
-        barcode: copies[0].barcode,
-        status: copies[0].status
-      });
-    }
-
     // Prepare CSV data with individual copy details
     const csvData = copies.map(copy => {
       const title = copy.titleId as any;
       const library = copy.libraryId as any;
       const inventory = copy.inventoryId as any;
-      
-      // Debug logging
-      console.log('Copy data:', {
-        copyId: copy._id,
-        titleExists: !!title,
-        libraryExists: !!library,
-        inventoryExists: !!inventory,
-        titleData: title ? { title: title.title, isbn13: title.isbn13 } : null,
-        libraryData: library ? { name: library.name, code: library.code } : null
-      });
       
       return {
         // Book Information
@@ -360,7 +337,7 @@ export const exportBooks = async (req: Request, res: Response) => {
         libraryCode: library?.code || 'UNK',
         
         // Individual Copy Information
-        copyId: copy._id || '',
+        copyId: copy._id ? copy._id.toString() : '',
         barcode: copy.barcode || '',
         status: copy.status || 'available',
         condition: copy.condition || 'good',
@@ -373,11 +350,6 @@ export const exportBooks = async (req: Request, res: Response) => {
         inventoryNotes: inventory?.notes || ''
       };
     });
-
-    // Debug: Log sample CSV data
-    if (csvData.length > 0) {
-      console.log('Sample CSV data:', csvData[0]);
-    }
 
     // Create CSV writer
     const csvWriter = createObjectCsvWriter({
