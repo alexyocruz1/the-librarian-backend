@@ -61,6 +61,14 @@ export const getInventories = async (req: Request, res: Response) => {
     if (titleId) query.titleId = titleId;
     if (availableOnly) query.availableCopies = { $gt: 0 };
 
+    // Filter by user's assigned libraries for admin users
+    if (req.user?.role === 'admin' && req.user.libraries && req.user.libraries.length > 0) {
+      // If libraryId is already specified in query, use it; otherwise filter by user's libraries
+      if (!libraryId) {
+        query.libraryId = { $in: req.user.libraries };
+      }
+    }
+
     const skip = (page - 1) * limit;
 
     const [inventories, total] = await Promise.all([

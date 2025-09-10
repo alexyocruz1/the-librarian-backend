@@ -355,12 +355,13 @@ export const importBooks = async (req: Request, res: Response) => {
           }
 
           // Create individual copy
+          const copyStatus = copyData.status || 'available';
           const copy = new Copy({
             inventoryId: inventory._id,
             libraryId: targetLibraryId,
             titleId: title._id,
             barcode: (barcode && barcode.trim()) ? barcode : undefined,
-            status: copyData.status || 'available',
+            status: copyStatus,
             condition: copyData.condition || 'good',
             shelfLocation: copyData.shelfLocation || inventory.shelfLocation,
             acquiredAt: copyData.acquiredAt ? parseDate(copyData.acquiredAt) : new Date()
@@ -370,7 +371,7 @@ export const importBooks = async (req: Request, res: Response) => {
 
           // Update inventory counts
           inventory.totalCopies += 1;
-          if (copyData.status === 'available') {
+          if (copyStatus === 'available') {
             inventory.availableCopies += 1;
           }
         }
