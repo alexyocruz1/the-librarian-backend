@@ -284,23 +284,8 @@ export const deleteLibrary = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    // Check if library has any inventories or copies
-    const Inventory = require('@/models/Inventory').Inventory;
-    const Copy = require('@/models/Copy').Copy;
-    
-    const [inventoryCount, copyCount] = await Promise.all([
-      Inventory.countDocuments({ libraryId: id }),
-      Copy.countDocuments({ libraryId: id })
-    ]);
-
-    if (inventoryCount > 0 || copyCount > 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Cannot delete library with existing books or copies'
-      });
-    }
-
-    const library = await Library.findByIdAndDelete(id);
+    // Check if library exists
+    const library = await Library.findById(id);
     if (!library) {
       return res.status(404).json({
         success: false,
@@ -308,9 +293,99 @@ export const deleteLibrary = async (req: Request, res: Response) => {
       });
     }
 
+    // Check for active borrow records (books currently borrowed from this library)
+    const BorrowRecord = require('@/models/BorrowRecord').BorrowRecord;
+    const activeBorrows = await BorrowRecord.countDocuments({ 
+      libraryId: id, 
+      status: { $in: ['borrowed', 'overdue'] } 
+    });
+
+    if (activeBorrows > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot delete library with active book loans. Please return all borrowed books first.'
+      });
+    }
+
+    // Check for pending borrow requests
+    const BorrowRequest = require('@/models/BorrowRequest').BorrowRequest;
+    const pendingRequests = await BorrowRequest.countDocuments({ 
+      libraryId: id, 
+      status: 'pending' 
+    });
+
+    if (pendingRequests > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot delete library with pending borrow requests. Please process all requests first.'
+      });
+    }
+
+    // Get all related data counts for confirmation
+    const Inventory = require('@/models/Inventory').Inventory;
+    const Copy = require('@/models/Copy').Copy;
+    const User = require('@/models/User').User;
+    
+    const [inventoryCount, copyCount, borrowRecordCount, borrowRequestCount, userAssignmentsCount] = await Promise.all([
+      Inventory.countDocuments({ libraryId: id }),
+      Copy.countDocuments({ libraryId: id }),
+      BorrowRecord.countDocuments({ libraryId: id }),
+      BorrowRequest.countDocuments({ libraryId: id }),
+      User.countDocuments({ libraries: id })
+    ]);
+
+    // Perform cascade deletion
+    const deletionResults = {
+      inventoriesDeleted: 0,
+      copiesDeleted: 0,
+      borrowRecordsDeleted: 0,
+      borrowRequestsDeleted: 0,
+      userAssignmentsRemoved: 0
+    };
+
+    // Delete all borrow records (completed/returned ones)
+    if (borrowRecordCount > 0) {
+      const borrowRecordResult = await BorrowRecord.deleteMany({ libraryId: id });
+      deletionResults.borrowRecordsDeleted = borrowRecordResult.deletedCount || 0;
+    }
+
+    // Delete all borrow requests (cancelled/rejected ones)
+    if (borrowRequestCount > 0) {
+      const borrowRequestResult = await BorrowRequest.deleteMany({ libraryId: id });
+      deletionResults.borrowRequestsDeleted = borrowRequestResult.deletedCount || 0;
+    }
+
+    // Delete all copies
+    if (copyCount > 0) {
+      const copyResult = await Copy.deleteMany({ libraryId: id });
+      deletionResults.copiesDeleted = copyResult.deletedCount || 0;
+    }
+
+    // Delete all inventories
+    if (inventoryCount > 0) {
+      const inventoryResult = await Inventory.deleteMany({ libraryId: id });
+      deletionResults.inventoriesDeleted = inventoryResult.deletedCount || 0;
+    }
+
+    // Remove library from all user assignments
+    if (userAssignmentsCount > 0) {
+      const userResult = await User.updateMany(
+        { libraries: id },
+        { $pull: { libraries: id } }
+      );
+      deletionResults.userAssignmentsRemoved = userResult.modifiedCount || 0;
+    }
+
+    // Finally, delete the library itself
+    await Library.findByIdAndDelete(id);
+
     return res.json({
       success: true,
-      message: 'Library deleted successfully'
+      message: 'Library and all related data deleted successfully',
+      data: {
+        libraryDeleted: true,
+        ...deletionResults
+      }
     });
 
   } catch (error) {
