@@ -174,7 +174,7 @@ export const importBooks = async (req: Request, res: Response) => {
         if (copyData.libraryCode) {
           const library = await Library.findOne({ code: copyData.libraryCode });
           if (library) {
-            targetLibraryId = library._id.toString();
+            targetLibraryId = (library._id as any).toString();
           } else {
             results.errors.push(`Row ${i + 1}: Library with code "${copyData.libraryCode}" not found`);
             continue;

@@ -173,6 +173,7 @@ export interface JWTPayload {
 
 // CSV Import Types
 export interface CSVBookData {
+  // Book Information
   isbn13?: string;
   isbn10?: string;
   title: string;
@@ -184,7 +185,20 @@ export interface CSVBookData {
   publishedYear?: number;
   description?: string;
   coverUrl?: string;
-  totalCopies: number;
+  
+  // Library Information
+  libraryName?: string;
+  libraryCode?: string;
+  
+  // Individual Copy Information
+  copyId?: string;
+  barcode?: string;
+  status?: string;
+  condition?: string;
   shelfLocation?: string;
+  acquiredAt?: string;
+  
+  // Legacy fields for backward compatibility
+  totalCopies: number;
   notes?: string;
 }
