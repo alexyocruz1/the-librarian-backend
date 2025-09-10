@@ -141,7 +141,7 @@ export const importBooks = async (req: Request, res: Response) => {
 
           // Validate condition
           if (normalizedRow.condition && !['new', 'good', 'used', 'worn', 'damaged'].includes(normalizedRow.condition)) {
-            csvErrors.push(`Row ${csvData.length + 1}: Invalid condition value`);
+            csvErrors.push(`Row ${csvData.length + 1}: Invalid condition value. Valid values are: new, good, used, worn, damaged`);
             return;
           }
 
@@ -532,7 +532,7 @@ export const getCSVTemplate = async (req: Request, res: Response) => {
         // Individual Copy Information (empty barcode for auto-generation)
         barcode: '',
         status: 'available',
-        condition: 'excellent',
+        condition: 'new',
         shelfLocation: 'Aisle 1, Rack 2',
         acquiredAt: '2024-01-10',
         totalCopies: '2',
