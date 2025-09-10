@@ -245,9 +245,6 @@ export const createCopy = async (req: Request, res: Response) => {
 
 // Update copy
 export const updateCopy = async (req: Request, res: Response) => {
-  console.log('=== UPDATE COPY CALLED ===');
-  console.log('Request body:', req.body);
-  console.log('Copy ID:', req.params.id);
   try {
     // Check validation errors
     const errors = validationResult(req);
@@ -277,13 +274,11 @@ export const updateCopy = async (req: Request, res: Response) => {
           } else {
             updates[key] = new Date(dateStr);
           }
-          console.log(`Converting acquiredAt: "${req.body[key]}" -> Date object:`, updates[key]);
         } else {
           updates[key] = req.body[key];
         }
       }
     });
-    console.log('Final updates object:', updates);
 
     // Check barcode uniqueness if updating
     if (updates.barcode) {
@@ -309,9 +304,6 @@ export const updateCopy = async (req: Request, res: Response) => {
       updates.barcode = updates.barcode.toUpperCase();
     }
 
-    console.log('About to update copy with ID:', id);
-    console.log('Updates being applied:', updates);
-    
     const updatedCopy = await Copy.findByIdAndUpdate(
       id,
       updates,
@@ -321,9 +313,6 @@ export const updateCopy = async (req: Request, res: Response) => {
       { path: 'libraryId', select: 'name code' },
       { path: 'titleId', select: 'title authors isbn13 isbn10' }
     ]);
-    
-    console.log('Updated copy from database:', updatedCopy);
-    console.log('Updated copy acquiredAt:', updatedCopy?.acquiredAt);
 
     if (!updatedCopy) {
       return res.status(404).json({
