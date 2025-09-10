@@ -356,8 +356,6 @@ export const exportBooks = async (req: Request, res: Response) => {
         totalCopies: 1, // Each row represents one copy
         
         // Inventory Summary (for reference)
-        inventoryTotalCopies: inventory?.totalCopies || 0,
-        inventoryAvailableCopies: inventory?.availableCopies || 0,
         inventoryNotes: inventory?.notes || ''
       };
     });
@@ -371,7 +369,7 @@ export const exportBooks = async (req: Request, res: Response) => {
       'ISBN13', 'ISBN10', 'Title', 'Subtitle', 'Authors', 'Categories', 'Language', 'Publisher', 
       'Published Year', 'Description', 'Cover URL', 'Library Code', 
       'Barcode', 'Status', 'Condition', 'Shelf Location', 'Acquired Date', 'Total Copies',
-      'Inventory Total Copies', 'Inventory Available Copies', 'Inventory Notes'
+      'Inventory Notes'
     ];
     
     const csvRows = [headers.join(',')];
@@ -396,8 +394,6 @@ export const exportBooks = async (req: Request, res: Response) => {
         `"${row.shelfLocation || ''}"`,
         `"${row.acquiredAt || ''}"`,
         `"${row.totalCopies || ''}"`,
-        `"${row.inventoryTotalCopies || ''}"`,
-        `"${row.inventoryAvailableCopies || ''}"`,
         `"${row.inventoryNotes || ''}"`
       ];
       csvRows.push(csvRow.join(','));
@@ -473,8 +469,6 @@ export const getCSVTemplate = async (req: Request, res: Response) => {
         totalCopies: '3',
         
         // Inventory Summary (for reference)
-        inventoryTotalCopies: '3',
-        inventoryAvailableCopies: '2',
         inventoryNotes: 'Sample notes about the book'
       },
       {
@@ -503,8 +497,6 @@ export const getCSVTemplate = async (req: Request, res: Response) => {
         totalCopies: '2',
         
         // Inventory Summary (for reference)
-        inventoryTotalCopies: '2',
-        inventoryAvailableCopies: '2',
         inventoryNotes: 'New acquisition'
       }
     ];
@@ -538,8 +530,6 @@ export const getCSVTemplate = async (req: Request, res: Response) => {
         { id: 'totalCopies', title: 'Total Copies' },
         
         // Inventory Summary (for reference)
-        { id: 'inventoryTotalCopies', title: 'Inventory Total Copies' },
-        { id: 'inventoryAvailableCopies', title: 'Inventory Available Copies' },
         { id: 'inventoryNotes', title: 'Inventory Notes' }
       ]
     });
