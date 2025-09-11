@@ -18,7 +18,7 @@ export const getReportsData = async (req: Request, res: Response) => {
     // Build library filter based on user role
     let libraryFilter: any = {};
     if (req.user?.role === 'admin' && req.user.libraries) {
-      libraryFilter = { $in: req.user.libraries };
+      libraryFilter = { libraryId: { $in: req.user.libraries } };
     }
 
     // Get basic counts
@@ -35,23 +35,23 @@ export const getReportsData = async (req: Request, res: Response) => {
     ] = await Promise.all([
       Title.countDocuments(),
       User.countDocuments({ status: 'active' }),
-      Library.countDocuments(),
-      Inventory.countDocuments(libraryFilter.libraryId ? { libraryId: libraryFilter } : {}),
-      Copy.countDocuments(libraryFilter.libraryId ? { libraryId: libraryFilter } : {}),
+      Library.countDocuments(libraryFilter.libraryId ? libraryFilter : {}),
+      Inventory.countDocuments(libraryFilter.libraryId ? libraryFilter : {}),
+      Copy.countDocuments(libraryFilter.libraryId ? libraryFilter : {}),
       BorrowRecord.countDocuments({ 
         status: { $in: ['borrowed', 'overdue'] },
-        ...(libraryFilter.libraryId && { libraryId: libraryFilter })
+        ...(libraryFilter.libraryId && libraryFilter)
       }),
       BorrowRecord.countDocuments({ 
         status: { $in: ['borrowed', 'overdue'] },
         dueDate: { $lt: new Date() },
-        ...(libraryFilter.libraryId && { libraryId: libraryFilter })
+        ...(libraryFilter.libraryId && libraryFilter)
       }),
       BorrowRequest.countDocuments({ 
         status: 'pending',
-        ...(libraryFilter.libraryId && { libraryId: libraryFilter })
+        ...(libraryFilter.libraryId && libraryFilter)
       }),
-      BorrowRecord.countDocuments(libraryFilter.libraryId ? { libraryId: libraryFilter } : {})
+      BorrowRecord.countDocuments(libraryFilter.libraryId ? libraryFilter : {})
     ]);
 
     // Get popular books (most borrowed)
@@ -391,7 +391,7 @@ export const getReportData = async (req: Request, res: Response) => {
     // Build library filter based on user role
     let libraryFilter: any = {};
     if (req.user?.role === 'admin' && req.user.libraries) {
-      libraryFilter = { $in: req.user.libraries };
+      libraryFilter = { libraryId: { $in: req.user.libraries } };
     }
 
     let data: any = {};

@@ -11,13 +11,13 @@ import {
   createLibraryValidation,
   updateLibraryValidation
 } from '@/controllers/libraryController';
-import { authenticate, authorize, authorizeLibraryAccess } from '@/middleware/auth';
+import { authenticate, authorize, authorizeLibraryAccess, optionalAuth } from '@/middleware/auth';
 
 const router = Router();
 
-// Public routes (for library selection)
-router.get('/', getLibraries);
-router.get('/:id', getLibraryById);
+// Public routes (for library selection) - with optional auth for filtering
+router.get('/', optionalAuth, getLibraries);
+router.get('/:id', optionalAuth, getLibraryById);
 
 // Protected routes
 router.use(authenticate);

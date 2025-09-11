@@ -106,6 +106,16 @@ export const getLibraries = async (req: Request, res: Response) => {
       ];
     }
 
+    // Filter libraries based on user role and assigned libraries
+    if (req.user) {
+      // If user is admin, only show libraries they're assigned to
+      if (req.user.role === 'admin' && req.user.libraries && req.user.libraries.length > 0) {
+        query._id = { $in: req.user.libraries };
+      }
+      // Super admin can see all libraries (no additional filtering)
+      // Students and guests can see all libraries for browsing
+    }
+
     const skip = (page - 1) * limit;
 
     const [libraries, total] = await Promise.all([
