@@ -52,9 +52,16 @@ export const register = async (req: Request, res: Response) => {
 
     const { name, email, password, role = 'guest' } = req.body;
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    // Check if user already exists (block rejected as well)
+    const existingUser = await User.findOne({ email: (email as string).toLowerCase() });
     if (existingUser) {
+      // If previously rejected or soft-deleted, block registration for same email
+      if (existingUser.status === 'rejected' || (existingUser as any).isDeleted) {
+        return res.status(403).json({
+          success: false,
+          error: 'Registration is blocked for this email. Please contact support.'
+        });
+      }
       return res.status(409).json({
         success: false,
         error: 'User with this email already exists'

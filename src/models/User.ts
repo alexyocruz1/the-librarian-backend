@@ -85,6 +85,25 @@ const UserSchema = new Schema({
   previousLoginAt: {
     type: Date,
     default: null
+  },
+  // Soft-rejection and lifecycle metadata
+  rejectedAt: {
+    type: Date,
+    default: null
+  },
+  rejectedBy: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  rejectionReason: {
+    type: String,
+    default: null,
+    maxlength: [500, 'Rejection reason cannot exceed 500 characters']
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true,

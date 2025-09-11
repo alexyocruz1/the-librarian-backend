@@ -88,6 +88,13 @@ export const getUsers = async (req: Request, res: Response) => {
 
     const skip = (page - 1) * limit;
 
+    // Hide rejected or soft-deleted by default unless includeRejected=true
+    const includeRejected = req.query.includeRejected === 'true';
+    if (!includeRejected) {
+      query.status = query.status || { $ne: 'rejected' };
+      query.isDeleted = false;
+    }
+
     const [users, total] = await Promise.all([
       User.find(query)
         .populate('libraries', 'name code')
@@ -245,10 +252,18 @@ export const updateUser = async (req: Request, res: Response) => {
     }
 
     // Admins cannot modify admins or superadmins
-    if (req.user?.role === 'admin' && (existingUser?.role === 'admin' || existingUser?.role === 'superadmin')) {
+    if (req.user?.role === 'admin' && existingUser && (existingUser.role === 'admin' || (existingUser as any).role === 'superadmin')) {
       return res.status(403).json({
         success: false,
         error: 'Admins cannot modify admin or superadmin users'
+      });
+    }
+
+    // Prevent changing status once rejected unless superadmin explicitly reactivates (not allowed here)
+    if (existingUser?.status === 'rejected' && typeof updates.status !== 'undefined') {
+      return res.status(400).json({
+        success: false,
+        error: 'Rejected users cannot change status'
       });
     }
 
@@ -384,6 +399,7 @@ export const approveStudent = async (req: Request, res: Response) => {
 export const rejectStudent = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const { reason } = req.body || {};
 
     const user = await User.findById(id);
     if (!user) {
@@ -409,6 +425,9 @@ export const rejectStudent = async (req: Request, res: Response) => {
     }
 
     user.status = 'rejected';
+    (user as any).rejectedAt = new Date();
+    (user as any).rejectedBy = req.user?.userId;
+    if (reason) (user as any).rejectionReason = reason;
     await user.save();
 
     return res.json({

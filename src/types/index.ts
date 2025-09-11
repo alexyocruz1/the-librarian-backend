@@ -14,6 +14,11 @@ export interface IUser {
   profile?: {
     phone?: string;
   };
+  // Soft-rejection and lifecycle metadata
+  rejectedAt?: Date;
+  rejectedBy?: string;
+  rejectionReason?: string;
+  isDeleted?: boolean;
   preferences?: {
     language?: string;
     timezone?: string;
