@@ -72,9 +72,9 @@ export const getUsers = async (req: Request, res: Response) => {
     // Build query
     const query: any = {};
     
-    // Super admin can see all users, admins can only see users in their libraries
-    if (req.user?.role === 'admin' && req.user.libraries) {
-      // For now, admins can see all users (can be restricted later based on business logic)
+    // Super admin can see all users. Admins can only manage students/guests; they should not see admins/superadmins
+    if (req.user?.role === 'admin') {
+      query.role = { $nin: ['admin', 'superadmin'] };
     }
 
     if (role) query.role = role;
@@ -131,6 +131,14 @@ export const getUserById = async (req: Request, res: Response) => {
       return res.status(404).json({
         success: false,
         error: 'User not found'
+      });
+    }
+
+    // Admins cannot access admin or superadmin users
+    if (req.user?.role === 'admin' && (user.role === 'admin' || user.role === 'superadmin')) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied'
       });
     }
 
@@ -236,6 +244,14 @@ export const updateUser = async (req: Request, res: Response) => {
       });
     }
 
+    // Admins cannot modify admins or superadmins
+    if (req.user?.role === 'admin' && (existingUser?.role === 'admin' || existingUser?.role === 'superadmin')) {
+      return res.status(403).json({
+        success: false,
+        error: 'Admins cannot modify admin or superadmin users'
+      });
+    }
+
     const user = await User.findByIdAndUpdate(
       id,
       updates,
@@ -316,6 +332,13 @@ export const approveStudent = async (req: Request, res: Response) => {
     }
 
     if (user.role === 'admin') {
+      // Only superadmin can approve admins
+      if (req.user?.role !== 'superadmin') {
+        return res.status(403).json({
+          success: false,
+          error: 'Only superadmin can approve admins'
+        });
+      }
       user.status = 'active';
       await user.save();
       return res.json({
@@ -370,6 +393,7 @@ export const rejectStudent = async (req: Request, res: Response) => {
       });
     }
 
+    // Only students can be rejected by this endpoint; admin rejections are superadmin-only via other flows
     if (user.role !== 'student') {
       return res.status(400).json({
         success: false,
@@ -405,8 +429,11 @@ export const rejectStudent = async (req: Request, res: Response) => {
 // Get pending students
 export const getPendingStudents = async (req: Request, res: Response) => {
   try {
+    // For admins: only show pending students. For superadmins: show pending students and admins
+    const roleFilter = req.user?.role === 'superadmin' ? { $in: ['student', 'admin'] } : 'student';
+
     const students = await User.find({ 
-      role: { $in: ['student', 'admin'] }, 
+      role: roleFilter as any, 
       status: 'pending' 
     })
     .select('-passwordHash')

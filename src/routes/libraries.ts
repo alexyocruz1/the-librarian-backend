@@ -22,8 +22,8 @@ router.get('/:id', optionalAuth, getLibraryById);
 // Protected routes
 router.use(authenticate);
 
-// Get library admins (admin and super admin only)
-router.get('/:id/admins', authorize('admin', 'superadmin'), getLibraryAdmins);
+// Get library admins (super admin only)
+router.get('/:id/admins', authorize('superadmin'), getLibraryAdmins);
 
 // Create library (super admin only)
 router.post('/', authorize('superadmin'), createLibraryValidation, createLibrary);
