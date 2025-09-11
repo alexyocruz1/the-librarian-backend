@@ -91,8 +91,11 @@ export const getUsers = async (req: Request, res: Response) => {
     // Hide rejected or soft-deleted by default unless includeRejected=true
     const includeRejected = req.query.includeRejected === 'true';
     if (!includeRejected) {
-      query.status = query.status || { $ne: 'rejected' };
-      query.isDeleted = false;
+      // Only apply status filter if no specific status was requested
+      if (!status) {
+        query.status = { $ne: 'rejected' };
+      }
+      query.isDeleted = { $ne: true }; // Use $ne instead of false to handle undefined values
     }
 
     const [users, total] = await Promise.all([
