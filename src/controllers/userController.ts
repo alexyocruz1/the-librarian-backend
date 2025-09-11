@@ -178,7 +178,7 @@ export const createUser = async (req: Request, res: Response) => {
       email,
       passwordHash: password, // Will be hashed by pre-save middleware
       role: role as UserRole,
-      status: role === 'admin' ? 'active' : (role === 'guest' ? 'active' : 'pending'),
+      status: role === 'admin' ? 'pending' : (role === 'guest' ? 'active' : 'pending'),
       libraries,
       studentId
     });
@@ -315,10 +315,20 @@ export const approveStudent = async (req: Request, res: Response) => {
       });
     }
 
+    if (user.role === 'admin') {
+      user.status = 'active';
+      await user.save();
+      return res.json({
+        success: true,
+        message: 'Admin approved successfully',
+        data: { user }
+      });
+    }
+
     if (user.role !== 'student') {
       return res.status(400).json({
         success: false,
-        error: 'User is not a student'
+        error: 'User is not a student or admin'
       });
     }
 
@@ -396,7 +406,7 @@ export const rejectStudent = async (req: Request, res: Response) => {
 export const getPendingStudents = async (req: Request, res: Response) => {
   try {
     const students = await User.find({ 
-      role: 'student', 
+      role: { $in: ['student', 'admin'] }, 
       status: 'pending' 
     })
     .select('-passwordHash')

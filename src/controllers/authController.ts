@@ -72,36 +72,39 @@ export const register = async (req: Request, res: Response) => {
 
     await user.save();
 
-    // Generate tokens
-    const accessToken = generateAccessToken({
-      userId: (user._id as any).toString(),
-      email: user.email,
-      role: user.role,
-      libraries: user.libraries
-    });
+    // Guests: issue tokens immediately (active). Students: no tokens until approved.
+    let accessToken: string | undefined;
+    if (user.status === 'active') {
+      accessToken = generateAccessToken({
+        userId: (user._id as any).toString(),
+        email: user.email,
+        role: user.role,
+        libraries: user.libraries
+      });
 
-    const refreshToken = generateRefreshToken({
-      userId: (user._id as any).toString(),
-      email: user.email,
-      role: user.role,
-      libraries: user.libraries
-    });
+      const refreshToken = generateRefreshToken({
+        userId: (user._id as any).toString(),
+        email: user.email,
+        role: user.role,
+        libraries: user.libraries
+      });
 
-    // Set refresh token in httpOnly cookie
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    });
+      // Set refresh token in httpOnly cookie
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      });
+    }
 
     return res.status(201).json({
       success: true,
-      message: role === 'guest' 
-        ? 'Account created successfully' 
+      message: role === 'guest'
+        ? 'Account created successfully'
         : 'Account created successfully. Please wait for admin approval.',
       data: {
-        accessToken,
+        ...(accessToken ? { accessToken } : {}),
         user: {
           id: user._id,
           name: user.name,
