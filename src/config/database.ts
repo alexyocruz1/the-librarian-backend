@@ -44,7 +44,7 @@ export const connectDatabase = async (): Promise<void> => {
     await mongoose.connect(connectionUrl);
     
     console.log(`✅ Connected to MongoDB: ${getDatabaseName()}`);
-    console.log(`🌍 Environment: ${NODE_ENV}`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
     
     // Handle connection events
     mongoose.connection.on('error', (error) => {
