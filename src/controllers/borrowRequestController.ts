@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
+import mongoose from 'mongoose';
 import { BorrowRequest } from '@/models/BorrowRequest';
 import { Inventory } from '@/models/Inventory';
 import { Copy } from '@/models/Copy';
@@ -468,9 +469,14 @@ export const getUserRequests = async (req: Request, res: Response) => {
     const { userId } = req.params;
     const { status } = req.query;
 
+    console.log('🔍 getUserRequests called with userId:', userId);
+    console.log('🔍 Request user:', req.user);
+    console.log('🔍 Status filter:', status);
+
     // Check if user is requesting their own data or is an admin
     if (req.user?.role === 'student' || req.user?.role === 'guest') {
       if (userId !== req.user.userId) {
+        console.log('🔍 Access denied: userId mismatch');
         return res.status(403).json({
           success: false,
           error: 'Access denied'
@@ -478,7 +484,21 @@ export const getUserRequests = async (req: Request, res: Response) => {
       }
     }
 
+    // Ensure userId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      console.log('🔍 Invalid userId format:', userId);
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid user ID format'
+      });
+    }
+
     const requests = await BorrowRequest.findByUser(userId, status as any);
+    console.log('🔍 Found requests:', requests.length);
+    
+    // Also check if there are any requests at all for debugging
+    const allRequests = await BorrowRequest.find({}).limit(5);
+    console.log('🔍 Sample of all requests in DB:', allRequests.map(r => ({ id: r._id, userId: r.userId, status: r.status })));
 
     return res.json({
       success: true,

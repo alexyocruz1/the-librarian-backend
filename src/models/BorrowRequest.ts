@@ -111,6 +111,7 @@ BorrowRequestSchema.statics.findPending = function(libraryId?: string) {
 BorrowRequestSchema.statics.findByUser = function(userId: string, status?: RequestStatus) {
   const query: any = { userId };
   if (status) query.status = status;
+  console.log('🔍 BorrowRequest.findByUser query:', query);
   return this.find(query)
     .populate('titleId', 'title authors')
     .populate('libraryId', 'name code')
